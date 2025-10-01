@@ -32,3 +32,28 @@ def registrar_usuario():
     finally:
         banco.close()
 
+def login_usuario():
+    print("\n--- Login ---")
+    email = input("Email: ")
+    senha = input("Senha: ")
+
+    banco = sql.connect('pegai.db')
+    cursor = banco.cursor()
+
+    # BUSCA USUARIO PELO EMAIL
+    cursor.execute("SELECT senha_hash FROM usuarios WHERE email = ?", (email,))
+    resultado = cursor.fetchone()
+
+    banco.close()
+
+    if resultado:
+        senha_hash_armazenada = resultado[0].encode('utf-8')
+        senha_digitada_bytes = senha.encode('utf-8')
+
+        # COMPARA A SENHA DIGITADA COM O HASH ARMAZENADO
+        if bc.checkpw(senha_digitada_bytes, senha_hash_armazenada):
+            print("Login bem sucedido!")
+            return True # SUCESSO
+        else
+            print("Email ou senha incorretos.")
+        return False # FALHA
