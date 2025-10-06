@@ -1,6 +1,11 @@
+import os
 import sqlite3 as sql
 import bcrypt as bc
 import jwt
+
+# SQLITE -> BANCO DE DADOS
+# BCRYPT -> ENCRIPTAR DADOS (SENHA) EM FORMATO DE HASH PRO CASO DE VAZAMENTO DE DADOS
+# jwt
 
 def gerar_token(email, tipo_usuario):
     secret = "sua_chave_secreta"
@@ -94,4 +99,5 @@ def login_usuario():
             print("Senha redefinida com sucesso!")
         else:
             print("Email não encontrado")
+
 
