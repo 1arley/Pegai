@@ -2,10 +2,15 @@ import os
 import sqlite3 as sql
 import bcrypt as bc
 import jwt
+import database
+import time
+import sys
 
 # SQLITE -> BANCO DE DADOS
 # BCRYPT -> ENCRIPTAR DADOS (SENHA) EM FORMATO DE HASH PRO CASO DE VAZAMENTO DE DADOS
 # jwt
+
+database.inicializar_banco()
 
 def gerar_token(email, tipo_usuario):
     secret = "sua_chave_secreta"
@@ -13,21 +18,23 @@ def gerar_token(email, tipo_usuario):
     token = jwt.encode(payload, secret, algorithm="HS256")
     return token
 
+    tipo_usuario = None
+
 def registrar_usuario():
     """FUNC PRA CADASTRAR USUARIO"""
     print("\n--- Cadastro de Novo Usuário ---")
     nome = input("Nome completo: ")
     email = input("Email: ")
     senha = input("Senha: ")
-    #tipo_usuario = input("Você é 'passageiro' ou 'motorista'? ").lower()
+    tipo_usuario = input("Você é 'passageiro' ou 'motorista'? ").lower()
     #TESTANDO WHILE LOOP ->
     
-    while tipo_usuario not in ['passageiro', 'motorista']:
-        tipo_usuario = input("Você é 'passageiro' ou 'motorista'? ").lower()
-        
-            if tipo_usuario not in ['passageiro', 'motorista']:
-                print("Opção inválida. Por favor, digite 'passageiro' ou 'motorista'.")
-        return
+    while True:
+        if tipo_usuario in ['passageiro', 'motorista']:
+            break  # Se a entrada for válida, o loop é interrompido e o código continua.
+        else:
+            # Se não for válida, mostra o erro e o loop pede a informação novamente.
+            print("Opção inválida. Por favor, digite    'passageiro' ou 'motorista'.")
     # SENHA PRA BYTE
     senha_bytes = senha.encode('utf-8')
     # HASH DA SENHA
@@ -37,16 +44,12 @@ def registrar_usuario():
         banco = sql.connect('pegai.db')
         cursor = banco.cursor()
 
-        cursor.execute(
-            # INSERIR USUARIO NO BANCO COM SENHA HASHEADA
-            "INSERT INTO usuarios (nome, email, senha_hash, tipo_usuario) VALUES (?, ?, ?, ?)",
-            (nome, email, hash_senha.decode('utf-8'), tipo_usuario)
-        )
-
+        cursor.execute("INSERT INTO usuarios (nome, email, senha_hash, tipo_usuario) VALUES (?, ?, ?, ?)", (nome, email, hash_senha.decode('utf-8'), tipo_usuario))
+        banco.commit() # SALVANDO DADOS ACIMA
     except sql.IntegrityError:
         print("Erro: Este email ja está cadastrado.")
     finally:
-        banco.close()
+        banco.close() # FECHANDO O BD APOS PEGAR INFORMAÇÕES
 
 def login_usuario():
     """Login do usuário no sistema"""
@@ -56,14 +59,10 @@ def login_usuario():
 
     banco = sql.connect('pegai.db')
     cursor = banco.cursor()
-
     # BUSCA USUARIO PELO EMAIL
     cursor.execute("SELECT senha_hash, tipo_usuario FROM usuarios WHERE email = ?", (email,))
     resultado = cursor.fetchone()
-
     banco.close()
-
-    tipo_usuario = None
     
     if resultado:
         senha_hash_armazenada = resultado[0].encode('utf-8')
@@ -77,27 +76,39 @@ def login_usuario():
             return True
         else:
             print("Email ou senha incorretos.")
-        return False # FALHA
-        
-    def recuperar_senha():
-        """Recuperar senha após esquecer ou sla"""
-        email = input("Digite o email cadastrado: ")
+            return False 
+
+def recuperar_senha():
+    """Recuperar senha após esquecer ou algo assim"""
+    email = input("Digite o email cadastrado: ")
+
+    # Verifica se o email existe no banco
+    banco = sql.connect('pegai.db')
+    cursor = banco.cursor()
+    cursor.execute("SELECT nome FROM usuarios WHERE email = ?", (email,))
+    resultado = cursor.fetchone()
+    banco.close()
+
+    if resultado:  # se encontrou algo
+        print("Email encontrado. Redefina sua senha.")
+        nova_senha = input("Nova senha: ")
+
+        # Criptografa a senha
+        hash_senha = bc.hashpw(nova_senha.encode('utf-8'), bc.gensalt())
+
+        # Atualiza a senha no banco
         banco = sql.connect('pegai.db')
         cursor = banco.cursor()
-        cursor.execute("SELECT nome FROM usuarios WHERE email = ?")
-        resultado = cursor.fetchone()
+        cursor.execute(
+            "UPDATE usuarios SET senha_hash = ? WHERE email = ?",
+            (hash_senha.decode('utf-8'), email)
+        )
+        banco.commit()
         banco.close()
-        if resultado = True:
-            print("Email encontrado. Redefina sua senha.")
-            nova_senha = input("Nova senha: ")
-            hash_senha = bc.hashpw(nova_senha.encode('utf-8'), bc.gensalt())
-            banco = sql.connect('pegai.db')
-            cursor = banco.cursor()
-            cursor.execute("UPDATE usuarios SET senha_hash = ? WHERE email = ?", (hash_senha.decode('utf-8'), email))
-            banco.commit()
-            banco.close()
-            print("Senha redefinida com sucesso!")
-        else:
-            print("Email não encontrado")
 
+        print("Senha redefinida com sucesso!")
+        return True
+    else:
+        print("Email não encontrado.")
 
+        
