@@ -1,14 +1,15 @@
 import os
 import sqlite3 as sql
 import bcrypt as bc
-import jwt
-import database
-import time
+import jwt #Criação de Token
+import database #Inicialização do banco com inicializar_banco()
 import sys
+import re #RegEx
 
 # SQLITE -> BANCO DE DADOS
 # BCRYPT -> ENCRIPTAR DADOS (SENHA) EM FORMATO DE HASH PRO CASO DE VAZAMENTO DE DADOS
-# jwt
+
+#---------------------------------------------------------------------------------------------------------------------------------------------------------------------------#
 
 database.inicializar_banco()
 
@@ -18,7 +19,22 @@ def gerar_token(email, tipo_usuario):
     token = jwt.encode(payload, secret, algorithm="HS256")
     return token
 
-    tipo_usuario = None
+# ------- Configurações de validação -------
+
+email_regex = re.compile(r"^[A-Za-z]+\.{1}[A-Za-z]+@ufrpe\.br$")
+"""Email só pode ser escrito no modelo fulano.detal@ufrpe.br"""
+# Explicação: exige exatamente um ponto no local-part e domínio ufrpe.br
+# Não sei se a ufrpe aceita outro tipo de formato (Meu é assim), se sim, quiser aceitar números/underscores/acentos, muda a classe [A-Za-z] conforme necessário.
+senha_minima = 8
+senha_caracteres_proibidos = set(' \'"`;')
+
+# ---------------------------------------------------------------------
+
+def validar_email(email: str) -> bool:
+    """Retorna bool (True ou False) se o email é ou não no formato declarado acima"""
+    return bool(email_regex.fullmatch(email.strip()))
+
+def validar_senha:
 
 def registrar_usuario():
     """FUNC PRA CADASTRAR USUARIO"""
@@ -27,7 +43,6 @@ def registrar_usuario():
     email = input("Email: ")
     senha = input("Senha: ")
     tipo_usuario = input("Você é 'passageiro' ou 'motorista'? ").lower()
-    #TESTANDO WHILE LOOP ->
     
     while True:
         if tipo_usuario in ['passageiro', 'motorista']:
