@@ -93,6 +93,10 @@ def login_usuario():
             print("Email ou senha incorretos.")
             return False 
 
+#
+# ADICIONAR FORMA DE IDENTIFICAR QUE O EMAIL É MESMO DO USUÁRIO NECESSARIA
+#
+
 def recuperar_senha():
     """Recuperar senha após esquecer ou algo assim"""
     email = input("Digite o email cadastrado: ")
