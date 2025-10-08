@@ -6,6 +6,7 @@ import database
 import re
 import time
 import a2f
+import util  # Importa o módulo util atualizado
 
 # ---------------------------------------------------------------------------
 # Inicialização e configuração
@@ -32,16 +33,20 @@ def validar_email(email: str) -> bool:
 
 def validar_senha(senha: str) -> bool:
     if len(senha) < senha_minima:
-        print(f"Erro: A senha deve ter no mínimo {senha_minima} caracteres.")
+        util.print_erro(f"A senha deve ter no mínimo {senha_minima} caracteres.")
+        util.aguardar()
         return False
     if any(c in senha_caracteres_proibidos for c in senha):
-        print("Erro: A senha contém caracteres proibidos.")
+        util.print_erro("A senha contém caracteres proibidos.")
+        util.aguardar()
         return False
     if not any(c.isalpha() for c in senha):
-        print("Erro: A senha deve conter pelo menos uma letra.")
+        util.print_erro("A senha deve conter pelo menos uma letra.")
+        util.aguardar()
         return False
     if not any(c.isdigit() for c in senha):
-        print("Erro: A senha deve conter pelo menos um número.")
+        util.print_erro("A senha deve conter pelo menos um número.")
+        util.aguardar()
         return False
     return True
 
@@ -50,33 +55,35 @@ def validar_senha(senha: str) -> bool:
 # ---------------------------------------------------------------------------
 
 def registrar_usuario():
-    print("\n--- Cadastro de Novo Usuário ---")
-    nome = input("Nome completo: ")
+    util.exibir_cabecalho("Cadastro de Novo Usuário")
+    nome = util.entrada_personalizada("Nome completo: ")
 
     while True:
-        email = input("Email (fulano.sobrenome@ufrpe.br): ")
+        email = util.entrada_personalizada("Email (fulano.sobrenome@ufrpe.br): ")
         if validar_email(email):
             break
-        print("Formato de email inválido.")
+        util.print_erro("Formato de email inválido.")
+        util.aguardar()
 
     while True:
-        senha = input("Senha: ")
+        senha = util.entrada_personalizada("Senha: ")
         if validar_senha(senha):
             break
 
     while True:
-        tipo_usuario = input("Você é 'passageiro' ou 'motorista'? ").lower()
+        tipo_usuario = util.entrada_personalizada("Você é 'passageiro' ou 'motorista'? ").lower()
         if tipo_usuario in ['passageiro', 'motorista']:
             break
-        print("Opção inválida.")
+        util.print_erro("Opção inválida.")
+        util.aguardar()
 
-    # Envio e verificação do código 2FA
     codigo = a2f.gerar_codigo()
     a2f.enviar_codigo_email(email, codigo)
     expira_em = time.time() + 300
 
     if not a2f.verificar_codigo(codigo, expira_em):
-        print("Cadastro cancelado.")
+        util.print_erro("Cadastro cancelado.")
+        util.aguardar(3)
         return False
 
     senha_bytes = senha.encode('utf-8')
@@ -90,9 +97,11 @@ def registrar_usuario():
             (nome, email, hash_senha.decode('utf-8'), tipo_usuario)
         )
         banco.commit()
-        print("🎉 Usuário cadastrado com sucesso!")
+        util.print_sucesso("Usuário cadastrado com sucesso!")
+        util.aguardar(3)
     except sql.IntegrityError:
-        print("Erro: Este e-mail já está cadastrado.")
+        util.print_erro("Este e-mail já está cadastrado.")
+        util.aguardar(3)
     finally:
         banco.close()
 
@@ -101,9 +110,9 @@ def registrar_usuario():
 # ---------------------------------------------------------------------------
 
 def login_usuario():
-    print("\n--- Login ---")
-    email = input("Email: ")
-    senha = input("Senha: ")
+    util.exibir_cabecalho("Login")
+    email = util.entrada_personalizada("Email: ")
+    senha = util.entrada_personalizada("Senha: ")
 
     banco = sql.connect('pegai.db')
     cursor = banco.cursor()
@@ -112,12 +121,14 @@ def login_usuario():
     banco.close()
 
     if not resultado:
-        print("Email não encontrado.")
+        util.print_erro("Email não encontrado.")
+        util.aguardar()
         return False
 
     senha_hash_armazenada, tipo_usuario = resultado
     if not bc.checkpw(senha.encode('utf-8'), senha_hash_armazenada.encode('utf-8')):
-        print("Senha incorreta.")
+        util.print_erro("Senha incorreta.")
+        util.aguardar()
         return False
 
     codigo = a2f.gerar_codigo()
@@ -125,13 +136,15 @@ def login_usuario():
     expira_em = time.time() + 300
 
     if not a2f.verificar_codigo(codigo, expira_em):
-        print("Login cancelado.")
+        util.print_erro("Login cancelado.")
+        util.aguardar(3)
         return False
 
     token = gerar_token(email, tipo_usuario)
-    print("✅ Login bem-sucedido!")
+    util.print_sucesso("Login bem-sucedido!")
     print(f"Bem-vindo, {tipo_usuario}.")
     print(f"Token JWT: {token}")
+    util.aguardar(4)
     return token
 
 # ---------------------------------------------------------------------------
@@ -139,8 +152,8 @@ def login_usuario():
 # ---------------------------------------------------------------------------
 
 def recuperar_senha():
-    print("\n--- Recuperação de Senha ---")
-    email = input("Digite o e-mail cadastrado: ")
+    util.exibir_cabecalho("Recuperação de Senha")
+    email = util.entrada_personalizada("Digite o e-mail cadastrado: ")
 
     banco = sql.connect('pegai.db')
     cursor = banco.cursor()
@@ -149,7 +162,8 @@ def recuperar_senha():
     banco.close()
 
     if not resultado:
-        print("Email não encontrado.")
+        util.print_erro("Email não encontrado.")
+        util.aguardar()
         return False
 
     codigo = a2f.gerar_codigo()
@@ -157,12 +171,14 @@ def recuperar_senha():
     expira_em = time.time() + 300
 
     if not a2f.verificar_codigo(codigo, expira_em):
-        print("Falha na verificação. Operação cancelada.")
+        util.print_erro("Falha na verificação. Operação cancelada.")
+        util.aguardar(3)
         return False
 
-    nova_senha = input("Nova senha: ")
+    nova_senha = util.entrada_personalizada("Nova senha: ")
     if not validar_senha(nova_senha):
-        print("Senha inválida.")
+        util.print_erro("Senha inválida.")
+        util.aguardar()
         return False
 
     hash_senha = bc.hashpw(nova_senha.encode('utf-8'), bc.gensalt())
@@ -173,5 +189,6 @@ def recuperar_senha():
     banco.commit()
     banco.close()
 
-    print("✅ Senha redefinida com sucesso!")
+    util.print_sucesso("Senha redefinida com sucesso!")
+    util.aguardar(3)
     return True
