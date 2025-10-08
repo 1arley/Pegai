@@ -1,6 +1,4 @@
 import auth
-import database
-
 
 def menu():
     opcao = ""
@@ -11,20 +9,18 @@ def menu():
         print("[3] Esqueci a senha")
         print("[0] Sair")
 
-        opcao = input("Escolha uma número: ")
+        opcao = input("Escolha uma opção: ")
         if opcao == "1":
             auth.registrar_usuario()
-            return
         elif opcao == "2":
             auth.login_usuario()
-            return
         elif opcao == "3":
             auth.recuperar_senha()
         elif opcao == "0":
-            print("Saindo!")
+            print("Saindo...")
             return
         else:
-            print("\nOpção inválida. Tente novamente.")
+            print("Opção inválida. Tente novamente.")
 
 if __name__ == '__main__':
     menu()

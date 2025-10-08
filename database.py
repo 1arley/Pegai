@@ -1,13 +1,11 @@
 import sqlite3 as sql
 
 def inicializar_banco():
-
-    #CONECTA AO BANCO DE DADOS
+    """Cria o banco de dados e a tabela de usuários se não existirem"""
     banco = sql.connect('pegai.db')
     cursor = banco.cursor()
 
-    #CRIA TABELA DE USUARIO
-    #GUARDA INFORMACOES
+    # Criação da tabela base
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,9 +16,20 @@ def inicializar_banco():
         )
     ''')
 
+    # Adiciona colunas extras (caso ainda não existam)
+    try:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN codigo_2fa TEXT;")
+    except sql.OperationalError:
+        pass  # coluna já existe
+
+    try:
+        cursor.execute("ALTER TABLE usuarios ADD COLUMN expira_em REAL;")
+    except sql.OperationalError:
+        pass  # coluna já existe
+
     banco.commit()
     banco.close()
-    print("Banco de dados foi inicializado.")
+    print("Banco de dados inicializado com sucesso.")
 
 if __name__ == '__main__':
     inicializar_banco()
