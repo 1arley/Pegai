@@ -5,13 +5,23 @@ def menu():
     opcao = ""
     while opcao != '0':
         util.limpar_tela()
-        print("\n--- Pegai ---")
+        LARGURA = 30
+        print("=" * LARGURA)
+        print("Pegai".center(LARGURA))
+        print("=" * LARGURA)
+        
+        # Adiciona um espaço simples para respirar
+        print() 
+        
         print("[1] Registrar")
         print("[2] Login")
         print("[3] Esqueci a senha")
         print("[0] Sair")
 
+        # Adiciona um espaço antes do prompt de entrada
+        print()
         opcao = util.entrada_personalizada("Escolha uma opção: ")
+        
         if opcao == "1":
             auth.registrar_usuario()
         elif opcao == "2":

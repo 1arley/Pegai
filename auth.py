@@ -110,7 +110,7 @@ def registrar_usuario():
 # ---------------------------------------------------------------------------
 
 def login_usuario():
-    util.exibir_cabecalho("Login")
+    util.exibir_cabecalho("Login").center
     email = util.entrada_personalizada("Email: ")
     senha = util.entrada_personalizada("Senha: ")
 

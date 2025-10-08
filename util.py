@@ -18,11 +18,12 @@ def aguardar(segundos=2):
     time.sleep(segundos)
 
 def exibir_cabecalho(titulo):
-    """Exibe um cabeçalho formatado para as seções do menu."""
+    """Exibe um cabeçalho formatado e centralizado para as seções do menu."""
     limpar_tela()
-    print("=" * 30)
-    print(f"\n--- {titulo} ---")
-    print("=" * 30)
+    LARGURA = 30
+    print("=" * LARGURA)
+    print(titulo.center(LARGURA))
+    print("=" * LARGURA)
 
 def print_sucesso(mensagem):
     """Imprime uma mensagem de sucesso em verde."""
