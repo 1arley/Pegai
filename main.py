@@ -20,7 +20,7 @@ def menu():
 
         # Adiciona um espaço antes do prompt de entrada
         print()
-        opcao = util.entrada_personalizada("Escolha uma opção: ")
+        opcao = util.input_personalizado("Escolha uma opção: ").strip()
         
         if opcao == "1":
             auth.registrar_usuario()

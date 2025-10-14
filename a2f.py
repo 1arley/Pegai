@@ -9,8 +9,8 @@ import util
 # Configurações
 # ---------------------------------------------------------------------------
 
-EMAIL_REMETENTE = os.getenv("EMAIL_REMETENTE", "seu.email@ufrpe.br")
-EMAIL_SENHA = os.getenv("EMAIL_SENHA", "senha_de_aplicativo_aqui")
+EMAIL_REMETENTE = os.getenv("EMAIL_REMETENTE", "arthur.iarley@ufrpe.br")
+EMAIL_SENHA = os.getenv("EMAIL_SENHA", "xcit nwrc tplg ufum")
 
 # ---------------------------------------------------------------------------
 # Geração e envio de códigos
@@ -29,7 +29,7 @@ def enviar_codigo_email(email, codigo):
     msg.set_content(
         f"Seu código de verificação é: {codigo}\n"
         f"Este código expira em 5 minutos.\n\n"
-        f"Equipe Pegai 🚗"
+        f"Equipe Pegai"
     )
 
     try:
@@ -44,7 +44,7 @@ def enviar_codigo_email(email, codigo):
 def verificar_codigo(codigo_gerado, expira_em):
     """Valida o código digitado pelo usuário"""
     for tentativa in range(3):
-        codigo_digitado = util.entrada_personalizada("Digite o código de 6 dígitos enviado ao seu e-mail: ")
+        codigo_digitado = util.input_personalizado("Digite o código de 6 dígitos enviado ao seu e-mail: ")
         if codigo_digitado == codigo_gerado and time.time() < expira_em:
             util.print_sucesso("Verificação concluída com sucesso!")
             return True

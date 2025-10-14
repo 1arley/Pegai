@@ -29,3 +29,6 @@ Para Motoristas:
 [x] Navegação: Rota para o local do passageiro e para o destino final.
 
 [x] Painel de Ganhos: Visualização dos ganhos diários e semanais.
+
+
+dependencias: bcrypt

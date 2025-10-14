@@ -7,13 +7,14 @@ class Cores:
     VERDE = '\033[92m'
     AMARELO = '\033[93m'
     VERMELHO = '\033[91m'
+    ROSA = '\033[95m'
     FIM = '\033[0m'  # Reseta a cor para o padrão
 
 def limpar_tela():
     """Limpa o terminal, compatível com Windows, Linux e macOS."""
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def aguardar(segundos=2):
+def aguardar(segundos=1):
     """Pausa a execução por um determinado número de segundos."""
     time.sleep(segundos)
 
@@ -37,6 +38,6 @@ def print_aviso(mensagem):
     """Imprime uma mensagem de aviso em amarelo."""
     print(f"{Cores.AMARELO}⚠️ {mensagem}{Cores.FIM}")
 
-def entrada_personalizada(prompt):
+def input_personalizado(prompt):
     """Solicita uma entrada do usuário com uma cor amarela."""
-    return input(f"{Cores.AMARELO}{prompt}{Cores.FIM}")
+    return input(f"{Cores.ROSA}{prompt}{Cores.FIM}")

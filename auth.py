@@ -1,7 +1,7 @@
 import os
 import sqlite3 as sql
 import bcrypt as bc
-import jwt
+
 import database
 import re
 import time
@@ -23,10 +23,8 @@ senha_caracteres_proibidos = set(' \'"`;')
 # Funções utilitárias
 # ---------------------------------------------------------------------------
 
-def gerar_token(email, tipo_usuario):
-    """Cria um token JWT"""
-    payload = {"email": email, "tipo_usuario": tipo_usuario}
-    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+def validar_nome(nome: str) -> bool:
+    return len(nome.strip()) > 0
 
 def validar_email(email: str) -> bool:
     return bool(email_regex.fullmatch(email.strip()))
@@ -56,22 +54,28 @@ def validar_senha(senha: str) -> bool:
 
 def registrar_usuario():
     util.exibir_cabecalho("Cadastro de Novo Usuário")
-    nome = util.entrada_personalizada("Nome completo: ")
+    
+    while True:
+        nome = util.input_personalizado("Nome completo: ")
+        if validar_nome(nome):
+            break
+        util.print_erro("Nome inválido.")
+        util.aguardar()
 
     while True:
-        email = util.entrada_personalizada("Email (fulano.sobrenome@ufrpe.br): ")
+        email = util.input_personalizado("Email (fulano.sobrenome@ufrpe.br): ")
         if validar_email(email):
             break
         util.print_erro("Formato de email inválido.")
         util.aguardar()
 
     while True:
-        senha = util.entrada_personalizada("Senha: ")
+        senha = util.input_personalizado("Senha: ")
         if validar_senha(senha):
             break
 
     while True:
-        tipo_usuario = util.entrada_personalizada("Você é 'passageiro' ou 'motorista'? ").lower()
+        tipo_usuario = util.input_personalizado("Você é 'passageiro' ou 'motorista'? ").lower()
         if tipo_usuario in ['passageiro', 'motorista']:
             break
         util.print_erro("Opção inválida.")
@@ -110,9 +114,9 @@ def registrar_usuario():
 # ---------------------------------------------------------------------------
 
 def login_usuario():
-    util.exibir_cabecalho("Login").center
-    email = util.entrada_personalizada("Email: ")
-    senha = util.entrada_personalizada("Senha: ")
+    util.exibir_cabecalho("Login")
+    email = util.input_personalizado("Email: ")
+    senha = util.input_personalizado("Senha: ")
 
     banco = sql.connect('pegai.db')
     cursor = banco.cursor()
@@ -139,13 +143,11 @@ def login_usuario():
         util.print_erro("Login cancelado.")
         util.aguardar(3)
         return False
-
-    token = gerar_token(email, tipo_usuario)
-    util.print_sucesso("Login bem-sucedido!")
-    print(f"Bem-vindo, {tipo_usuario}.")
-    print(f"Token JWT: {token}")
-    util.aguardar(4)
-    return token
+    
+    util.print_sucesso("Login realizado com sucesso!")
+    util.aguardar(2) # Aguarda 2 segundos para o usuário ler a mensagem
+    
+    return True # Retorna True para indicar que o login foi bem-sucedido
 
 # ---------------------------------------------------------------------------
 # Recuperar senha
@@ -153,7 +155,7 @@ def login_usuario():
 
 def recuperar_senha():
     util.exibir_cabecalho("Recuperação de Senha")
-    email = util.entrada_personalizada("Digite o e-mail cadastrado: ")
+    email = util.input_personalizado("Digite o e-mail cadastrado: ")
 
     banco = sql.connect('pegai.db')
     cursor = banco.cursor()
@@ -175,7 +177,7 @@ def recuperar_senha():
         util.aguardar(3)
         return False
 
-    nova_senha = util.entrada_personalizada("Nova senha: ")
+    nova_senha = util.input_personalizado("Nova senha: ")
     if not validar_senha(nova_senha):
         util.print_erro("Senha inválida.")
         util.aguardar()
