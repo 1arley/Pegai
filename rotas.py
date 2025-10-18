@@ -62,7 +62,7 @@ def cadastrar_rota(motorista_id):
             cursor.execute("INSERT INTO rotas (motorista_id, origem, destino, horario_partida, dias_semana, vagas_disponiveis) VALUES (?, ?, ?, ?, ?, ?)",
               (motorista_id, origem, destino, horario_partida, dias_semana, vagas_disponiveis))    
         )
-            banco.commit
+            banco.commit()
             util.print_sucesso("Rota cadastrada com sucesso!")
     except Exception as e:
         util.print_erro(f"Ocorreu um erro ao cadastrar a rota: {e}")
