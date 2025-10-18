@@ -2,6 +2,7 @@ import os
 import time
 import sys
 
+
 # Define códigos de cores ANSI para personalização do terminal
 class Cores:
     VERDE = '\033[92m'
@@ -21,7 +22,7 @@ def aguardar(segundos=1):
 def exibir_cabecalho(titulo):
     """Exibe um cabeçalho formatado e centralizado para as seções do menu."""
     limpar_tela()
-    LARGURA = 30
+    LARGURA = 60
     print("=" * LARGURA)
     print(titulo.center(LARGURA))
     print("=" * LARGURA)
@@ -41,3 +42,10 @@ def print_aviso(mensagem):
 def input_personalizado(prompt):
     """Solicita uma entrada do usuário com uma cor amarela."""
     return input(f"{Cores.ROSA}{prompt}{Cores.FIM}")
+
+def checar_voltar(valor: str) -> bool:
+    if isinstance(valor, str) and valor.lower().strip() == 'voltar':
+        print_aviso("Operação cancelada pelo usuário.")
+        aguardar(1)
+        return True
+    return False
