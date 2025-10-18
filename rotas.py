@@ -59,8 +59,8 @@ def cadastrar_rota(motorista_id):
         
             banco = sql.connect('pegai.db')
             cursor = banco.cursor()
-            cursor.execute("INSERT INTO rotas (origem, destino, horario_partida, dias_semana, vagas_disponiveis) VALUES (?, ?, ?, ?, ?)",
-                    (motorista_id, origem, destino, horario_partida, dias_semana)    
+            cursor.execute("INSERT INTO rotas (motorista_id, origem, destino, horario_partida, dias_semana, vagas_disponiveis) VALUES (?, ?, ?, ?, ?, ?)",
+              (motorista_id, origem, destino, horario_partida, dias_semana, vagas_disponiveis))    
         )
             banco.commit
             util.print_sucesso("Rota cadastrada com sucesso!")
