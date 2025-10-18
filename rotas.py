@@ -5,70 +5,85 @@ import sqlite3 as sql
 def cadastrar_rota(motorista_id):
     util.exibir_cabecalho("Cadastro de rotas")
 
+    # Origem
     while True:
         origem = util.input_personalizado("Ponto de partida: ").strip()
-        if len(origem) > 100:
-            print("Você excedeu o numero de caracteres. (100)")
-        elif len(origem) <= 0:
-            print("A origem não pode ser vazio.")
         if util.checar_voltar(origem):
-            break
-    
+            return
+        if len(origem) > 100:
+            util.print_erro("Você excedeu o número de caracteres. (100)")
+            continue
+        if len(origem) == 0:
+            util.print_erro("A origem não pode ser vazia.")
+            continue
+        break
+
+    # Destino
     while True:
         destino = util.input_personalizado("Destino: ").strip()
-        if len(destino) < 100:
-            break
-        elif len(destino) <= 0:
-            print("O destino não pode ser vazio.")
-        else:
-            util.print_erro("Você excedeu o número de caracteres. (100)").strip()
         if util.checar_voltar(destino):
             return
-        
+        if len(destino) > 100:
+            util.print_erro("Você excedeu o número de caracteres. (100)")
+            continue
+        if len(destino) == 0:
+            util.print_erro("O destino não pode ser vazio.")
+            continue
+        break
 
+    # Horário
     while True:
-        horario_partida = util.input_personalizado("Horario de partida: ").strip()
-
+        horario_partida = util.input_personalizado("Horário de partida (ex: 13:00): ").strip()
         pattern = re.compile(r"^\d{2}:\d{2}$")
-        horario_certo = re.match(pattern, horario_partida) 
-
-        if horario_certo:
-            break
-        else:
-            util.print_erro("Digite no formato válido. ex: 13:00")
         if util.checar_voltar(horario_partida):
-                return
-    
+            return
+        if not re.match(pattern, horario_partida):
+            util.print_erro("Digite no formato válido. ex: 13:00")
+            continue
+        break
+
+    # Dias da semana
+    dias_validos = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom']
     while True:
-        dias_validos = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom']
-        dias_semana = util.input_personalizado("Dias (seg, ter, qua, qui, sex, sab, dom): ")
-        if dias_semana in dias_validos:
-            break
-        elif dias_semana not in dias_validos:
-            util.print_erro("Digite no formato válido. ex: seg")
+        dias_semana = util.input_personalizado("Dias (seg, ter, qua, qui, sex, sab, dom): ").strip()
         if util.checar_voltar(dias_semana):
             return
-    
+        if dias_semana not in dias_validos:
+            util.print_erro("Digite no formato válido. ex: seg")
+            continue
+        break
+
+    # Vagas
+    while True:
+        vagas_str = util.input_personalizado("Vagas disponíveis: ").strip()
+        if util.checar_voltar(vagas_str):
+            return
+        if not vagas_str.isdigit():
+            util.print_erro("Digite um número válido para vagas.")
+            continue
+        vagas_disponiveis = int(vagas_str)
+        if vagas_disponiveis >= 50:
+            util.print_erro("Você definitivamente não tem um ônibus maior que isso.")
+            continue
+        break
+
+    banco = None
     try:
-        while True:
-            vagas_disponiveis = int(util.input_personalizado("Vagas disponiveis: "))
-            if len(vagas_disponiveis) >= 50:
-                print("Você definitivamente não tem um onibus maior que isso")
-            if util.checar_voltar(vagas_disponiveis):
-                return
-        
-            banco = sql.connect('pegai.db')
-            cursor = banco.cursor()
-            cursor.execute("INSERT INTO rotas (motorista_id, origem, destino, horario_partida, dias_semana, vagas_disponiveis) VALUES (?, ?, ?, ?, ?, ?)",
-              (motorista_id, origem, destino, horario_partida, dias_semana, vagas_disponiveis))    
+        banco = sql.connect('pegai.db')
+        cursor = banco.cursor()
+        cursor.execute(
+            "INSERT INTO rotas (motorista_id, origem, destino, horario_partida, dias_semana, vagas_disponiveis) VALUES (?, ?, ?, ?, ?, ?)",
+            (motorista_id, origem, destino, horario_partida, dias_semana, vagas_disponiveis)
         )
-            banco.commit()
-            util.print_sucesso("Rota cadastrada com sucesso!")
+        banco.commit()
+        util.print_sucesso("Rota cadastrada com sucesso!")
     except Exception as e:
         util.print_erro(f"Ocorreu um erro ao cadastrar a rota: {e}")
     finally:
-        banco.close()
+        if banco:
+            banco.close()
         util.aguardar(2)
+
 
 def visualizar_minhas_rotas(motorista_id):
     """Exibe todas as rotas cadastradas pelo motorista."""
