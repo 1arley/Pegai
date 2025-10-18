@@ -64,51 +64,63 @@ def checar_voltar(valor: str) -> bool:
 def completar_cadastro_motorista(usuario_id):
     """Função interna para adicionar dados de motorista e veículo."""
     util.exibir_cabecalho("Cadastro de Motorista - Dados do Veículo")
-    
-    while True:
-        placa = util.input_personalizado("Placa do Veículo (ex: ABC1234): ").strip().upper()
-        if not re.match(r"^[A-Z][0-9]{7}$", placa):
-            print("Modelo de placa inválido")
-        else:
-            break
-        if util.checar_voltar(placa):
-            break
 
+    # Placa
+    while True:
+        placa = util.input_personalizado("Placa do Veículo (ex: ABC1D23): ").strip().upper()
+        if util.checar_voltar(placa):
+            return
+        # Aceita padrão Mercosul (América Latina)
+        if not re.match(r"^[A-Z]{3}[0-9][A-Z][0-9]{2}$", placa):
+            util.print_erro("Modelo de placa inválido")
+            continue
+        break
+
+    # Modelo
     while True:
         modelo = util.input_personalizado("Modelo do Veículo (ex: Fiat Uno): ").strip()
-        if len(modelo) > 30:
-            print("Vocẽ excedeu o numero máximo de caracteres.")
         if util.checar_voltar(modelo):
-            break
-    
+            return
+        if len(modelo) > 30:
+            util.print_erro("Você excedeu o número máximo de caracteres.")
+            continue
+        if len(modelo) == 0:
+            util.print_erro("O modelo não pode ser vazio.")
+            continue
+        break
+
+    # Cor
     while True:
         cor = util.input_personalizado("Cor do Veículo (ex: Prata): ").strip()
-        if len(cor) > 30:
-            print("Vocẽ excedeu o numero máximo de caracteres.")
-            break
-        elif cor.isnumeric():
-            print("A cor não pode conter números")
-        elif len(cor) <= 0:
-            print("A cor nao pode ser vazia")
         if util.checar_voltar(cor):
-            break
+            return
+        if len(cor) > 30:
+            util.print_erro("Você excedeu o número máximo de caracteres.")
+            continue
+        if cor.isnumeric():
+            util.print_erro("A cor não pode conter números")
+            continue
+        if len(cor) == 0:
+            util.print_erro("A cor não pode ser vazia")
+            continue
+        break
 
     try:
         banco = sql.connect('pegai.db')
         cursor = banco.cursor()
-        
+
         # Insere o veículo
         cursor.execute(
             "INSERT INTO veiculos (motorista_id, placa, modelo, cor) VALUES (?, ?, ?, ?)",
             (usuario_id, placa, modelo, cor)
         )
-        
+
         # Atualiza o status do usuário para motorista
         cursor.execute("UPDATE usuarios SET eh_motorista = 1 WHERE id = ?", (usuario_id,))
-        
+
         banco.commit()
         util.print_sucesso("Dados do veículo cadastrados! Você agora é um motorista.")
-        
+
     except sql.IntegrityError:
         util.print_erro("Erro: A placa ou o motorista já possui um veículo cadastrado.")
     except Exception as e:
@@ -116,6 +128,7 @@ def completar_cadastro_motorista(usuario_id):
     finally:
         banco.close()
         util.aguardar(2)
+
 
 # ---------------------------------------------------------------------------
 # Cadastro (Fluxo Principal)
