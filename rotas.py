@@ -57,7 +57,7 @@ def cadastrar_rota(motorista_id):
             if util.checar_voltar(vagas_disponiveis):
                 return
         
-            banco = sql.connect('Pegai.db')
+            banco = sql.connect('pegai.db')
             cursor = banco.cursor()
             cursor.execute("INSERT INTO rotas (origem, destino, horario_partida, dias_semana, vagas_disponiveis) VALUES (?, ?, ?, ?, ?)",
                     (motorista_id, origem, destino, horario_partida, dias_semana)    
