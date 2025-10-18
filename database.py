@@ -1,18 +1,46 @@
 import sqlite3 as sql
 
 def inicializar_banco():
-    """Cria o banco de dados e a tabela de usuários se não existirem"""
+    """Cria o banco de dados e as tabelas se não existirem"""
     banco = sql.connect('pegai.db')
     cursor = banco.cursor()
 
-    # Criação da tabela base
+    # Criação da tabela de usuarios
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
             senha_hash TEXT NOT NULL,
-            tipo_usuario TEXT NOT NULL CHECK(tipo_usuario IN ('passageiro', 'motorista'))
+            eh_motorista BOOLEAN NOT NULL DEFAULT 0,
+            perfil_ativo TEXT NOT NULL DEFAULT 'passageiro' 
+                CHECK(perfil_ativo IN ('passageiro', 'motorista'))
+        )
+    ''')
+    
+    # Tabela para os veículos
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS veiculos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            motorista_id INTEGER NOT NULL UNIQUE, -- 1 veículo por motorista por enquanto
+            placa TEXT NOT NULL UNIQUE,
+            modelo TEXT NOT NULL,
+            cor TEXT NOT NULL,
+            FOREIGN KEY (motorista_id) REFERENCES usuarios (id)
+        )
+    ''')
+
+    # Tabela para criação de rotas pelo motorista
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS rotas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            motorista_id INTEGER NOT NULL,
+            origem TEXT NOT NULL,
+            destino TEXT NOT NULL,
+            horario_partida TEXT NOT NULL,
+            dias_semana TEXT NOT NULL, -- <<-- CORRIGIDO DE 'dias'
+            vagas_disponiveis INTEGER NOT NULL, -- <<-- VÍRGULA ADICIONADA AQUI
+            FOREIGN KEY (motorista_id) REFERENCES usuarios (id)       
         )
     ''')
 
