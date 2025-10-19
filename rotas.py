@@ -85,7 +85,7 @@ def cadastrar_rota(motorista_id):
         util.aguardar(2)
 
 
-def visualizar_minhas_rotas(motorista_id):
+def visualizar_minhas_rotas(motorista_id, mostrar_ids=False):
     """Exibe todas as rotas cadastradas pelo motorista."""
     util.exibir_cabecalho("Minhas Rotas Cadastradas")
     banco = sql.connect('pegai.db')
