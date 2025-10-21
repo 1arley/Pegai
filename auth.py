@@ -6,7 +6,9 @@ import database
 import re
 import time
 import a2f
-import util  # Importa o módulo util atualizado
+import util
+import rotas
+import passageiro
 
 # ---------------------------------------------------------------------------
 # Inicialização e configuração
@@ -24,7 +26,7 @@ senha_caracteres_proibidos = set(' \'"`;')
 # ---------------------------------------------------------------------------
 
 def validar_nome(nome: str) -> bool:
-    return len(nome.strip()) > 0
+    return len(nome.strip()) > 3 and len(nome.strip()) < 30 and not any(char.isdigit() for char in nome)
 
 def validar_email(email: str) -> bool:
     return bool(email_regex.fullmatch(email.strip()))
@@ -47,39 +49,123 @@ def validar_senha(senha: str) -> bool:
         util.aguardar()
         return False
     return True
+    
+def checar_voltar(valor: str) -> bool:
+    if isinstance(valor, str) and valor.lower().strip() == 'voltar':
+        util.print_aviso("Operação cancelada pelo usuário.")
+        util.aguardar(1)
+        return True
+    return False
 
 # ---------------------------------------------------------------------------
-# Cadastro com verificação 2FA
+# Cadastro de Motorista (Função Auxiliar)
+# ---------------------------------------------------------------------------
+
+def completar_cadastro_motorista(usuario_id):
+    """Função interna para adicionar dados de motorista e veículo."""
+    util.exibir_cabecalho("Cadastro de Motorista - Dados do Veículo")
+
+    # Placa
+    while True:
+        placa = util.input_personalizado("Placa do Veículo (ex: ABC1D23): ").strip().upper()
+        if util.checar_voltar(placa):
+            return
+        # Aceita padrão Mercosul (América Latina)
+        if not re.match(r"^[A-Z]{3}[0-9][A-Z][0-9]{2}$", placa):
+            util.print_erro("Modelo de placa inválido")
+            continue
+        break
+
+    # Modelo
+    while True:
+        modelo = util.input_personalizado("Modelo do Veículo (ex: Fiat Uno): ").strip()
+        if util.checar_voltar(modelo):
+            return
+        if len(modelo) > 30:
+            util.print_erro("Você excedeu o número máximo de caracteres.")
+            continue
+        if len(modelo) == 0:
+            util.print_erro("O modelo não pode ser vazio.")
+            continue
+        break
+
+    # Cor
+    while True:
+        cor = util.input_personalizado("Cor do Veículo (ex: Prata): ").strip()
+        if util.checar_voltar(cor):
+            return
+        if len(cor) > 30:
+            util.print_erro("Você excedeu o número máximo de caracteres.")
+            continue
+        if cor.isnumeric():
+            util.print_erro("A cor não pode conter números")
+            continue
+        if len(cor) == 0:
+            util.print_erro("A cor não pode ser vazia")
+            continue
+        break
+
+    try:
+        banco = sql.connect('pegai.db')
+        cursor = banco.cursor()
+
+        # Insere o veículo
+        cursor.execute(
+            "INSERT INTO veiculos (motorista_id, placa, modelo, cor) VALUES (?, ?, ?, ?)",
+            (usuario_id, placa, modelo, cor)
+        )
+
+        # Atualiza o status do usuário para motorista
+        cursor.execute("UPDATE usuarios SET eh_motorista = 1 WHERE id = ?", (usuario_id,))
+
+        banco.commit()
+        util.print_sucesso("Dados do veículo cadastrados! Você agora é um motorista.")
+
+    except sql.IntegrityError:
+        util.print_erro("Erro: A placa ou o motorista já possui um veículo cadastrado.")
+    except Exception as e:
+        util.print_erro(f"Um erro inesperado ocorreu: {e}")
+    finally:
+        banco.close()
+        util.aguardar(2)
+
+
+# ---------------------------------------------------------------------------
+# Cadastro (Fluxo Principal)
 # ---------------------------------------------------------------------------
 
 def registrar_usuario():
-    util.exibir_cabecalho("Cadastro de Novo Usuário")
-    
-    while True:
-        nome = util.input_personalizado("Nome completo: ")
-        if validar_nome(nome):
-            break
-        util.print_erro("Nome inválido.")
-        util.aguardar()
+    util.exibir_cabecalho("Cadastro de Novo Usuário, digite 'voltar' p/ sair.")
 
     while True:
-        email = util.input_personalizado("Email (fulano.sobrenome@ufrpe.br): ")
-        if validar_email(email):
-            break
-        util.print_erro("Formato de email inválido.")
-        util.aguardar()
+        nome = util.input_personalizado("Nome completo: ").strip()
+        if checar_voltar(nome): return False
+        if validar_nome(nome): break
+        else:
+            util.print_erro("Nome inválido")
+            util.aguardar()
+
+    while True:
+        email = util.input_personalizado("Email (fulano.sobrenome@ufrpe.br): ").strip()
+        if checar_voltar(email): return False
+        if validar_email(email): break
+        else:
+            util.print_erro("Formato de email inválido.")
+            util.aguardar()
 
     while True:
         senha = util.input_personalizado("Senha: ")
-        if validar_senha(senha):
-            break
+        if checar_voltar(senha): return False
+        if validar_senha(senha): break
 
     while True:
-        tipo_usuario = util.input_personalizado("Você é 'passageiro' ou 'motorista'? ").lower()
-        if tipo_usuario in ['passageiro', 'motorista']:
-            break
-        util.print_erro("Opção inválida.")
-        util.aguardar()
+        confirma_senha = util.input_personalizado("Confirme a senha: ")
+        if checar_voltar(confirma_senha): return False
+        if senha == confirma_senha: break
+        else:
+            util.print_erro("As senhas não coincidem.")
+            util.aguardar()
+
 
     codigo = a2f.gerar_codigo()
     a2f.enviar_codigo_email(email, codigo)
@@ -92,35 +178,59 @@ def registrar_usuario():
 
     senha_bytes = senha.encode('utf-8')
     hash_senha = bc.hashpw(senha_bytes, bc.gensalt())
-
+    
+    usuario_id_criado = None
     try:
         banco = sql.connect('pegai.db')
         cursor = banco.cursor()
         cursor.execute(
-            "INSERT INTO usuarios (nome, email, senha_hash, tipo_usuario) VALUES (?, ?, ?, ?)",
-            (nome, email, hash_senha.decode('utf-8'), tipo_usuario)
+            "INSERT INTO usuarios (nome, email, senha_hash) VALUES (?, ?, ?)",
+            (nome, email, hash_senha.decode('utf-8'))
         )
+        usuario_id_criado = cursor.lastrowid
         banco.commit()
         util.print_sucesso("Usuário cadastrado com sucesso!")
-        util.aguardar(3)
+        util.aguardar(1)
+        
     except sql.IntegrityError:
         util.print_erro("Este e-mail já está cadastrado.")
         util.aguardar(3)
+        return False
+    except Exception as e:
+        util.print_erro(f"Um erro ocorreu: {e}")
+        util.aguardar(3)
+        return False
     finally:
         banco.close()
 
+    if usuario_id_criado:
+        while True:
+            resposta = util.input_personalizado("Deseja se cadastrar também como motorista? (s/n): ").lower().strip()
+            if checar_voltar(resposta): break
+            if resposta == 's':
+                completar_cadastro_motorista(usuario_id_criado)
+                break
+            elif resposta == 'n':
+                util.print_aviso("Cadastro finalizado como passageiro.")
+                util.aguardar(2)
+                break
+            else:
+                util.print_erro("Opção inválida. Digite 's' ou 'n'.")
+
 # ---------------------------------------------------------------------------
-# Login com verificação 2FA
+# Login (com seleção de perfil)
 # ---------------------------------------------------------------------------
 
 def login_usuario():
-    util.exibir_cabecalho("Login")
+    util.exibir_cabecalho("Login de Usuário, digite 'voltar' p/ sair.")
     email = util.input_personalizado("Email: ")
+    if checar_voltar(email): return False
     senha = util.input_personalizado("Senha: ")
+    if checar_voltar(senha): return False
 
     banco = sql.connect('pegai.db')
     cursor = banco.cursor()
-    cursor.execute("SELECT senha_hash, tipo_usuario FROM usuarios WHERE email = ?", (email,))
+    cursor.execute("SELECT id, senha_hash, eh_motorista FROM usuarios WHERE email = ?", (email,))
     resultado = cursor.fetchone()
     banco.close()
 
@@ -129,7 +239,8 @@ def login_usuario():
         util.aguardar()
         return False
 
-    senha_hash_armazenada, tipo_usuario = resultado
+    usuario_id, senha_hash_armazenada, eh_motorista = resultado
+    
     if not bc.checkpw(senha.encode('utf-8'), senha_hash_armazenada.encode('utf-8')):
         util.print_erro("Senha incorreta.")
         util.aguardar()
@@ -145,17 +256,40 @@ def login_usuario():
         return False
     
     util.print_sucesso("Login realizado com sucesso!")
-    util.aguardar(2) # Aguarda 2 segundos para o usuário ler a mensagem
+    util.aguardar(1)
     
-    return True # Retorna True para indicar que o login foi bem-sucedido
+    # --- LÓGICA DE SELEÇÃO DE PERFIL ---
+    
+    if eh_motorista:
+        while True:
+            util.exibir_cabecalho("Escolha seu modo de acesso")
+            print("[1] Entrar como Passageiro")
+            print("[2] Entrar como Motorista")
+            modo = util.input_personalizado("Opção: ").strip()
+
+            if modo == '1':
+                passageiro.menu_passageiro(usuario_id) # <-- ALTERADO
+                return True
+            elif modo == '2':
+                rotas.menu_motorista(usuario_id)
+                return True
+            else:
+                util.print_erro("Opção inválida. Tente novamente.")
+                util.aguardar()
+    else:
+        # Usuário é apenas passageiro
+        passageiro.menu_passageiro(usuario_id) # <-- ALTERADO
+        return True
 
 # ---------------------------------------------------------------------------
 # Recuperar senha
 # ---------------------------------------------------------------------------
 
 def recuperar_senha():
-    util.exibir_cabecalho("Recuperação de Senha")
+    util.exibir_cabecalho("Recuperação de Senha de Usuário, digite 'voltar' p/ sair.")
     email = util.input_personalizado("Digite o e-mail cadastrado: ")
+    if checar_voltar(email):
+        return False
 
     banco = sql.connect('pegai.db')
     cursor = banco.cursor()
@@ -192,5 +326,5 @@ def recuperar_senha():
     banco.close()
 
     util.print_sucesso("Senha redefinida com sucesso!")
-    util.aguardar(3)
+    util.aguardar(2)
     return True
