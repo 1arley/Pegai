@@ -5,10 +5,7 @@ def menu():
     opcao = ""
     while opcao != '0':
         util.limpar_tela()
-        LARGURA = 30
-        print("=" * LARGURA)
-        print("Pegai".center(LARGURA))
-        print("=" * LARGURA)
+        util.exibir_cabecalho("Pegai")
         
         # Adiciona um espaço simples para respirar
         print() 
@@ -38,4 +35,5 @@ def menu():
             util.aguardar()
 
 if __name__ == '__main__':
+
     menu()
