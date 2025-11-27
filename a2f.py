@@ -8,7 +8,7 @@ from util import Interface
 class ServicoAutenticacao2FA:
     def __init__(self):
         self.email_remetente = os.getenv("EMAIL_REMETENTE", "arthur.iarley@ufrpe.br")
-        self.email_senha = os.getenv("EMAIL_SENHA", "xcit nwrc tplg ufum") # xcit nwrc tplg ufum
+        self.email_senha = os.getenv("EMAIL_SENHA", "xcit nwrc tplg ufu") # xcit nwrc tplg ufum
 
     def gerar_codigo(self):
         return str(random.randint(100000, 999999))
@@ -43,3 +43,29 @@ class ServicoAutenticacao2FA:
                 Interface.print_erro("Código incorreto ou expirado.")
         Interface.print_erro("Falha na verificação.")
         return False
+    
+    def enviar_aviso_viagem(self, email_destino, nome_passageiro, novo_status, detalhes_rota):
+        msg = EmailMessage()
+        msg['Subject'] = f'Atualização de Viagem: {novo_status} - Pegai'
+        msg['From'] = self.email_remetente
+        msg['To'] = email_destino
+        
+        texto = f"""
+        Olá, {nome_passageiro}!
+        
+        O status da sua viagem mudou para: {novo_status}.
+        Rota: {detalhes_rota}
+        
+        Acesse o app para mais detalhes.
+        Equipe Pegai
+        """
+        msg.set_content(texto)
+
+        try:
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+                smtp.login(self.email_remetente, self.email_senha)
+                smtp.send_message(msg)
+            # Não imprimimos sucesso aqui para não poluir a tela do motorista
+        except Exception as e:
+            # Falha silenciosa ou log
+            pass

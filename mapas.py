@@ -67,7 +67,7 @@ class ServicoMapas:
             # Distância representaria: ~70% a 85% do preço final
         # Por Enquanto...
         distancia_reta = geodesic(coord_origem, coord_destino).km
-        distancia_ajustada_carro = distancia_reta * 0.8
+        distancia_ajustada_carro = distancia_reta * 0.35
         
         return round(distancia_ajustada_carro, 2)
 
