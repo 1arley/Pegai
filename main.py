@@ -1,39 +1,32 @@
-import auth
-import util
+from auth import ControladorAutenticacao
+from util import Interface
 
-def menu():
-    opcao = ""
-    while opcao != '0':
-        util.limpar_tela()
-        util.exibir_cabecalho("Pegai")
-        
-        # Adiciona um espaço simples para respirar
-        print() 
-        
-        print("[1] Registrar")
-        print("[2] Login")
-        print("[3] Esqueci a senha")
-        print("[0] Sair")
+class PegaiApp:
+    def __init__(self):
+        self.auth = ControladorAutenticacao()
 
-        # Adiciona um espaço antes do prompt de entrada
-        print()
-        opcao = util.input_personalizado("Escolha uma opção: ").strip()
-        
-        if opcao == "1":
-            auth.registrar_usuario()
-        elif opcao == "2":
-            auth.login_usuario()
-        elif opcao == "3":
-            auth.recuperar_senha()
-        elif opcao == "0":
-            print("Saindo...")
-            util.aguardar(1)
-            util.limpar_tela()
-            return
-        else:
-            util.print_erro("Opção inválida. Tente novamente.")
-            util.aguardar()
+    def executar(self):
+        opcao = ""
+        while opcao != '0':
+            Interface.exibir_cabecalho("Pegai - Caronas UFRPE")
+            print("\n[1] Registrar")
+            print("[2] Login")
+            print("[3] Esqueci a senha")
+            print("[0] Sair\n")
+            
+            opcao = Interface.input_personalizado("Escolha uma opção: ").strip()
+            
+            if opcao == "1": self.auth.registrar()
+            elif opcao == "2": self.auth.login()
+            elif opcao == "3": self.auth.recuperar_senha()
+            elif opcao == "0":
+                print("Saindo...")
+                Interface.aguardar(1)
+                Interface.limpar_tela()
+            else:
+                Interface.print_erro("Opção inválida.")
+                Interface.aguardar()
 
 if __name__ == '__main__':
-
-    menu()
+    app = PegaiApp()
+    app.executar()

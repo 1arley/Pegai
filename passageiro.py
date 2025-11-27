@@ -1,112 +1,199 @@
-import sqlite3 as sql
-import util
+from util import Interface
+from database import BancoDeDados
 import auth
+from models import Rota
+from models import Rota, Viagem 
 
-def solicitar_viagem(usuario_id, rota_id):
-    """Função interna (placeholder) para solicitar uma viagem."""
-    util.exibir_cabecalho(f"Solicitando Rota {rota_id}")
-    util.print_sucesso("Solicitação de viagem enviada com sucesso!")
-    util.print_aviso("Aguardando confirmação do motorista... (Funcionalidade em desenvolvimento)")
-    util.aguardar(2)
-    # Aqui, em um app real, diminuiria as vagas e criaria um registro de "viagem"
-    
-def buscar_rotas_disponiveis(usuario_id):
-    """Exibe rotas de outros motoristas com vagas disponíveis."""
-    util.exibir_cabecalho("Rotas Disponíveis")
-    banco = sql.connect('pegai.db')
-    cursor = banco.cursor()
-    
-    # Query para buscar rotas, juntando nome do motorista e dados do veículo
-    query = """
-        SELECT
-            r.id, u.nome, v.modelo, v.placa,
-            r.origem, r.destino, r.horario_partida, r.dias_semana, r.vagas_disponiveis
-        FROM rotas r
-        JOIN usuarios u ON r.motorista_id = u.id
-        JOIN veiculos v ON r.motorista_id = v.motorista_id
-        WHERE r.motorista_id != ? AND r.vagas_disponiveis > 0
-    """
-    
-    try:
-        cursor.execute(query, (usuario_id,))
-        rotas = cursor.fetchall()
-    except Exception as e:
-        util.print_erro(f"Erro ao buscar rotas: {e}")
-        rotas = []
-    finally:
-        banco.close()
+class ControladorPassageiro:
 
-    if not rotas:
-        util.print_aviso("Nenhuma rota com vagas disponível no momento.")
-        util.aguardar(2)
-        return
+    def __init__(self, usuario_logado):
+        self.usuario = usuario_logado  
+        self.usuario_id = usuario_logado.id 
+        self.db = BancoDeDados()
 
-    print(f"Encontradas {len(rotas)} rotas disponíveis:\n")
-    rotas_dict = {} # Dicionário para mapear input para ID da rota
-    
-    for i, rota in enumerate(rotas):
-        numero_rota = str(i + 1)
-        rotas_dict[numero_rota] = rota[0] # Mapeia "1" para o ID real da rota (rota[0])
+    def solicitar_viagem(self, rota_obj):
+        Interface.exibir_cabecalho(f"Solicitando Rota {rota_obj.id}")
+        print(f"Destino: {rota_obj.destino}")
+        print(f"Motorista: {rota_obj.motorista_nome}")
         
-        print(f"--- Rota {numero_rota} (ID: {rota[0]}) ---")
-        print(f"  Motorista: {rota[1]}")
-        print(f"  Veículo:   {rota[2]} (Placa: {rota[3]})")
-        print(f"  Origem:    {rota[4]}")
-        print(f"  Destino:   {rota[5]}")
-        print(f"  Horário:   {rota[6]} (Dias: {rota[7]})")
-        print(f"  Vagas:     {rota[8]}\n")
-        
-    print("="*30)
-    
-    while True:
-        escolha = util.input_personalizado("Digite o número da Rota para solicitar (ou 'voltar'): ").strip()
-        if util.checar_voltar(escolha):
-            return
+        try:
+            with self.db.conectar() as conn:
+                conn.execute(
+                    "INSERT INTO viagens (passageiro_id, rota_id, status) VALUES (?, ?, ?)",
+                    (self.usuario_id, rota_obj.id, 'PENDENTE')
+                )
+                conn.commit()
             
-        if escolha in rotas_dict:
-            rota_id_selecionada = rotas_dict[escolha]
-            solicitar_viagem(usuario_id, rota_id_selecionada)
-            return # Volta para o menu do passageiro
-        else:
-            util.print_erro("Opção inválida. Tente novamente.")
+            Interface.print_sucesso("Solicitação registrada no histórico!")
+        except Exception as e:
+            Interface.print_erro(f"Erro ao salvar solicitação: {e}")
+        
+        Interface.aguardar(2)
 
+    def buscar_rotas(self):
+        Interface.exibir_cabecalho("Rotas Disponíveis")
+        
+        query = """
+            SELECT r.id, u.nome, v.modelo, v.placa, r.origem, r.destino, r.horario_partida, r.dias_semana, r.vagas_disponiveis
+            FROM rotas r
+            JOIN usuarios u ON r.motorista_id = u.id
+            JOIN veiculos v ON r.motorista_id = v.motorista_id
+            WHERE r.motorista_id != ? AND r.vagas_disponiveis > 0
+        """
+        
+        rotas_objetos = []
+        try:
+            with self.db.conectar() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (self.usuario_id,))
+                tuplas = cursor.fetchall()
 
-def visualizar_historico(usuario_id):
-    """Exibe o histórico de viagens do passageiro (placeholder)."""
-    util.exibir_cabecalho("Meu Histórico de Viagens")
-    util.print_aviso("Funcionalidade em desenvolvimento.")
-    print("\n")
-    util.input_personalizado("Pressione Enter para voltar ao menu...")
+                # TRANSFORMAÇÃO
+                for t in tuplas:
+                    # t[1] é nome do motorista, t[2] é modelo
+                    rota = Rota(
+                        id=t[0], 
+                        origem=t[4], 
+                        destino=t[5], 
+                        horario_partida=t[6], 
+                        dias_semana=t[7], 
+                        vagas_disponiveis=t[8],
+                        motorista_nome=t[1],  # Passando os extras
+                        veiculo_modelo=t[2]
+                    )
+                    rotas_objetos.append(rota)
 
+        except Exception as e:
+            Interface.print_erro(f"Erro: {e}")
 
-def menu_passageiro(usuario_id):
-    """Exibe o menu de opções para o passageiro."""
-    opcao = ""
-    while opcao != '0':
-        util.exibir_cabecalho("Menu do Passageiro")
-        print("[1] Buscar Rotas Disponíveis")
-        print("[2] Meu Histórico de Viagens")
-        print("[3] Quero ser motorista") # <-- NOVA OPÇÃO
-        print("[0] Deslogar (Voltar ao menu principal)")
-        print()
-        opcao = util.input_personalizado("Escolha uma opção: ").strip()
-
-        if opcao == "1":
-            buscar_rotas_disponiveis(usuario_id)
-        elif opcao == "2":
-            visualizar_historico(usuario_id)
-        elif opcao == "3":
-
-            auth.completar_cadastro_motorista(usuario_id)
-
-            util.print_aviso("Perfil de motorista criado!")
-            util.print_aviso("Você será deslogado para atualizar seu perfil.")
-            util.aguardar(3)
+        if not rotas_objetos:
+            Interface.print_aviso("Nenhuma rota disponível.")
+            Interface.aguardar(2)
             return
-        elif opcao == "0":
-            util.print_aviso("Deslogando...")
-            util.aguardar(1)
+
+        print(f"Encontradas {len(rotas_objetos)} rotas:\n")
+        
+        # Dicionário mapeia "1", "2" -> Objeto Rota
+        mapa_rotas = {} 
+        
+        for i, rota in enumerate(rotas_objetos):
+            idx = str(i + 1)
+            mapa_rotas[idx] = rota
+            
+            print(f"--- Rota {idx} ---")
+            # Uso limpo dos atributos
+            print(f"  Motorista: {rota.motorista_nome} | Veículo: {rota.veiculo_modelo}")
+            print(f"  {rota.origem} -> {rota.destino}")
+            print(f"  Horário: {rota.horario_partida} ({rota.dias_semana}) | Vagas: {rota.vagas_disponiveis}\n")
+
+        print("="*30)
+        while True:
+            esc = Interface.input_personalizado("Número da Rota (ou 'voltar'): ").strip()
+            if Interface.checar_voltar(esc): return
+            
+            if esc in mapa_rotas:
+                # Passa o objeto selecionado
+                self.solicitar_viagem(mapa_rotas[esc])
+                return
+            else:
+                Interface.print_erro("Opção inválida.")
+        
+    def visualizar_historico(self):
+        Interface.exibir_cabecalho("Meu Histórico de Viagens")
+        
+        viagens_objs = []
+        
+        query = """
+            SELECT 
+                v.id, v.data_solicitacao, v.status,
+                r.id, r.origem, r.destino, r.horario_partida, r.dias_semana, r.vagas_disponiveis,
+                u.nome as nome_motorista, vec.modelo as modelo_veiculo
+            FROM viagens v
+            JOIN rotas r ON v.rota_id = r.id
+            JOIN usuarios u ON r.motorista_id = u.id
+            JOIN veiculos vec ON r.motorista_id = vec.motorista_id
+            WHERE v.passageiro_id = ?
+            ORDER BY v.id DESC
+        """
+
+        try:
+            with self.db.conectar() as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, (self.usuario_id,))
+                tuplas = cursor.fetchall()
+                
+                for t in tuplas:
+                    # t[0]=viagem_id, t[1]=data, t[2]=status
+                    # Cria objeto Rota (t[3] a t[10])
+                    rota = Rota(t[3], t[4], t[5], t[6], t[7], t[8], motorista_nome=t[9], veiculo_modelo=t[10])
+                    
+                    # Cria objeto Viagem
+                    viagem = Viagem(t[0], rota, t[1], t[2])
+                    viagens_objs.append(viagem)
+
+        except Exception as e:
+            Interface.print_erro(f"Erro ao buscar histórico: {e}")
+            Interface.aguardar(2)
             return
+
+        if not viagens_objs:
+            Interface.print_aviso("Nenhuma viagem encontrada no histórico.")
         else:
-            util.print_erro("Opção inválida. Tente novamente.")
-            util.aguardar()
+            print(f"Histórico de {len(viagens_objs)} viagens:\n")
+            for v in viagens_objs:
+                print(f"--- Solicitação #{v.id} [{v.status}] ---")
+                print(f"  Data: {v.data_solicitacao}")
+                print(f"  Rota: {v.rota.origem} -> {v.rota.destino}")
+                print(f"  Motorista: {v.rota.motorista_nome} ({v.rota.veiculo_modelo})")
+                print(f"  Horário: {v.rota.horario_partida}\n")
+        
+        print("="*30)
+        Interface.input_personalizado("Pressione Enter para voltar...")
+
+    def menu(self):
+        opcao = ""
+        while opcao != '0':
+            Interface.exibir_cabecalho("Menu do Passageiro")
+            print("[1] Buscar Rotas")
+            print("[2] Histórico")
+            
+            # Muda o texto dependendo se o usuário já é motorista
+            if self.usuario.eh_motorista:
+                print("[3] Adicionar Veículo (Extra)")
+            else:
+                print("[3] Quero ser motorista")
+                
+            print("[0] Deslogar")
+            print()
+            print("(Digite 'voltar' para trocar de perfil)") 
+            
+            opcao = Interface.input_personalizado("Opção: ").strip()
+
+            if opcao.lower() == 'voltar':
+                return False
+
+            if opcao == "1": 
+                self.buscar_rotas()
+            elif opcao == "2": 
+                self.visualizar_historico()
+            elif opcao == "3":
+                # Captura o resultado da operação (True ou False)
+                sucesso = auth.ControladorAutenticacao.completar_cadastro_motorista(self.usuario_id)
+                
+                if sucesso:
+                    # Só desloga se o cadastro funcionou, para atualizar as permissões
+                    Interface.print_aviso("Perfil atualizado! Faça login novamente.")
+                    return True
+                else:
+                    # Se cancelou (voltar) ou deu erro, apenas roda o loop de novo
+                    pass
+
+            elif opcao == "0":
+                Interface.print_aviso("Deslogando...")
+                Interface.aguardar(1)
+                return True
+            else:
+                Interface.print_erro("Inválido.")
+                Interface.aguardar()
+        
+        return True

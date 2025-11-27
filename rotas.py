@@ -1,178 +1,221 @@
-import util
 import re
-import sqlite3 as sql
+from util import Interface
+from database import BancoDeDados
+from models import Rota  
+from mapas import ServicoMapas
 
-def cadastrar_rota(motorista_id):
-    util.exibir_cabecalho("Cadastro de rotas")
+class ControladorMotorista:
+    def __init__(self, motorista_id):
+        self.motorista_id = motorista_id
+        self.db = BancoDeDados()
 
-    # Origem
-    while True:
-        origem = util.input_personalizado("Ponto de partida: ").strip()
-        if util.checar_voltar(origem):
-            return
-        if len(origem) > 100:
-            util.print_erro("Você excedeu o número de caracteres. (100)")
-            continue
-        if len(origem) == 0:
-            util.print_erro("A origem não pode ser vazia.")
-            continue
-        break
+    def cadastrar_rota(self):
+        Interface.exibir_cabecalho("Cadastro de rotas")
+        mapas = ServicoMapas()
 
-    # Destino
-    while True:
-        destino = util.input_personalizado("Destino: ").strip()
-        if util.checar_voltar(destino):
-            return
-        if len(destino) > 100:
-            util.print_erro("Você excedeu o número de caracteres. (100)")
-            continue
-        if len(destino) == 0:
-            util.print_erro("O destino não pode ser vazio.")
-            continue
-        break
+        # Origem
+        while True:
+            origem = Interface.input_personalizado("Ponto de partida: ").strip()
+            if Interface.checar_voltar(origem): return
+            if len(origem) > 100 or len(origem) == 0:
+                Interface.print_erro("Origem inválida.")
+                continue
+            break
 
-    # Horário
-    while True:
-        horario_partida = util.input_personalizado("Horário de partida (ex: 13:00): ").strip()
-        pattern = re.compile(r"^\d{2}:\d{2}$")
-        if util.checar_voltar(horario_partida):
-            return
-        if not re.match(pattern, horario_partida):
-            util.print_erro("Digite no formato válido. ex: 13:00")
-            continue
-        break
+        # Destino
+        while True:
+            destino = Interface.input_personalizado("Destino: ").strip()
+            if Interface.checar_voltar(destino): return
+            if len(destino) > 100 or len(destino) == 0:
+                Interface.print_erro("Destino inválido.")
+                continue
+            break
 
-    # Dias da semana
-    dias_validos = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom']
-    while True:
-        dias_semana = util.input_personalizado("Dias (seg, ter, qua, qui, sex, sab, dom): ").strip()
-        if util.checar_voltar(dias_semana):
-            return
-        if dias_semana not in dias_validos:
-            util.print_erro("Digite no formato válido. ex: seg")
-            continue
-        break
+        # Horário
+        while True:
+            horario = Interface.input_personalizado("Horário (ex: 13:00): ").strip()
+            if Interface.checar_voltar(horario): return
+            if not re.match(r"^\d{2}:\d{2}$", horario):
+                Interface.print_erro("Formato inválido.")
+                continue
+            break
 
-    # Vagas
-    while True:
-        vagas_str = util.input_personalizado("Vagas disponíveis: ").strip()
-        if util.checar_voltar(vagas_str):
-            return
-        if not vagas_str.isdigit():
-            util.print_erro("Digite um número válido para vagas.")
-            continue
-        vagas_disponiveis = int(vagas_str)
-        if vagas_disponiveis >= 50:
-            util.print_erro("Você definitivamente não tem um ônibus maior que isso.")
-            continue
-        break
-
-    banco = None
-    try:
-        banco = sql.connect('pegai.db')
-        cursor = banco.cursor()
-        cursor.execute(
-            "INSERT INTO rotas (motorista_id, origem, destino, horario_partida, dias_semana, vagas_disponiveis) VALUES (?, ?, ?, ?, ?, ?)",
-            (motorista_id, origem, destino, horario_partida, dias_semana, vagas_disponiveis)
-        )
-        banco.commit()
-        util.print_sucesso("Rota cadastrada com sucesso!")
-    except Exception as e:
-        util.print_erro(f"Ocorreu um erro ao cadastrar a rota: {e}")
-    finally:
-        if banco:
-            banco.close()
-        util.aguardar(2)
-
-
-def visualizar_minhas_rotas(motorista_id, mostrar_ids=False):
-    """Exibe todas as rotas cadastradas pelo motorista."""
-    util.exibir_cabecalho("Minhas Rotas Cadastradas")
-    banco = sql.connect('pegai.db')
-    cursor = banco.cursor()
-    cursor.execute("SELECT origem, destino, horario_partida, dias_semana, vagas_disponiveis FROM rotas WHERE motorista_id = ?", (motorista_id,))
-    rotas = cursor.fetchall()
-    banco.close()
-
-    if not rotas:
-        util.print_aviso("Você ainda não cadastrou nenhuma rota.")
-    else:
-        for i, rota in enumerate(rotas):
-            print(f"\n--- Rota {i+1} ---")
-            print(f"  Origem: {rota[0]}")
-            print(f"  Destino: {rota[1]}")
-            print(f"  Horário: {rota[2]}")
-            print(f"  Dias: {rota[3]}")
-            print(f"  Vagas: {rota[4]}")
-
-    print("\n") # Adiciona espaço antes de pedir o Enter
-    util.input_personalizado("Pressione Enter para voltar ao menu...")
-
-def deletar_rota(motorista_id):
-    """Exibe as rotas com ID e permite ao motorista deletar uma."""
-    util.exibir_cabecalho("Deletar Rota")
-    
-    # Chama a função de visualização mostrando os IDs
-    rotas = visualizar_minhas_rotas(motorista_id, mostrar_ids=True)
-    
-    if not rotas: # Se for Falso (sem rotas), apenas retorna
-        util.aguardar(2)
-        return
-
-    # Cria uma lista de IDs válidos para checagem
-    ids_validos = [str(rota[0]) for rota in rotas]
-
-    while True:
-        id_para_deletar = util.input_personalizado("Digite o ID da rota que deseja deletar (ou 'voltar'): ").strip()
+        # Dias
+        dias_validos = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom']
+        dias_finais = ""
         
-        if util.checar_voltar(id_para_deletar):
+        while True:
+            # Atualizei o texto do input para dar o exemplo correto
+            entrada_dias = Interface.input_personalizado("Dias (ex: seg, qua, sex): ").strip().lower()
+            
+            if Interface.checar_voltar(entrada_dias): return
+            
+            if not entrada_dias:
+                Interface.print_erro("O campo dias não pode ser vazio.")
+                continue
+
+            # 1. Separa por vírgula
+            # 2. Remove espaços em branco de cada item
+            # 3. Ignora itens vazios (caso o usuário digite "seg, , ter")
+            lista_dias_digitados = [d.strip() for d in entrada_dias.split(',') if d.strip()]
+
+            # Validação: Verifica se TODOS os dias digitados estão na lista de válidos
+            dias_incorretos = [d for d in lista_dias_digitados if d not in dias_validos]
+
+            if dias_incorretos:
+                # Mostra quais dias estão errados
+                msg = f"Dia(s) inválido(s): {', '.join(dias_incorretos)}. Use apenas: {', '.join(dias_validos)}."
+                Interface.print_erro(msg)
+                continue
+            
+            # Se passou, formata a string bonitinha para salvar no banco (ex: "seg, qua, sex")
+            dias_finais = ", ".join(lista_dias_digitados)
+            break
+
+        # Vagas
+        while True:
+            vagas_str = Interface.input_personalizado("Vagas: ").strip()
+            if Interface.checar_voltar(vagas_str): return
+            if not vagas_str.isdigit():
+                Interface.print_erro("Digite um número.")
+                continue
+            vagas = int(vagas_str)
+            if vagas >= 50:
+                Interface.print_erro("Isso não é um ônibus.")
+                continue
+            break
+
+        print("\nCalculando distância e sugerindo preço...")
+        
+        distancia = mapas.calcular_distancia_km(origem, destino)
+        preco_sugerido = 0.0
+
+        if distancia:
+            preco_sugerido = mapas.sugerir_preco(distancia)
+            Interface.print_sucesso(f"Distância estimada: {distancia} km")
+            Interface.print_aviso(f"Preço sugerido pelo app: R$ {preco_sugerido:.2f}")
+        else:
+            Interface.print_erro("Não foi possível calcular a distância automaticamente.")
+
+        # Preço (Modificado para aceitar sugestão)
+        while True:
+            prompt = f"Preço da carona (Enter para aceitar R$ {preco_sugerido}): "
+            preco_str = Interface.input_personalizado(prompt).strip().replace(',', '.')
+            
+            if Interface.checar_voltar(preco_str): return
+            
+            if preco_str == "":
+                preco = preco_sugerido # Aceita a sugestão
+                break
+            
+            try:
+                preco = float(preco_str)
+                if preco < 0 and preco > 100: raise ValueError
+                break
+            except ValueError:
+                Interface.print_erro("Valor inválido.")
+
+        try:
+            with self.db.conectar() as conn:
+                cursor = conn.cursor()
+                # Atualizado query para incluir preco
+                cursor.execute(
+                    "INSERT INTO rotas (motorista_id, origem, destino, horario_partida, dias_semana, vagas_disponiveis, preco) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (self.motorista_id, origem, destino, horario, dias_finais, vagas, preco)
+                )
+                conn.commit()
+            Interface.print_sucesso(f"Rota cadastrada! Valor: R$ {preco:.2f}")
+        except Exception as e:
+            Interface.print_erro(f"Erro: {e}")
+        finally:
+            Interface.aguardar(2)
+
+    def visualizar_minhas_rotas(self, mostrar_ids=False):
+        Interface.exibir_cabecalho("Minhas Rotas")
+        
+        rotas_objetos = [] # Lista para guardar OBJETOS Rota
+
+        with self.db.conectar() as conn:
+            cursor = conn.cursor()
+            # Buscamos os dados crus
+            cursor.execute("SELECT id, origem, destino, horario_partida, dias_semana, vagas_disponiveis FROM rotas WHERE motorista_id = ?", (self.motorista_id,))
+            tuplas = cursor.fetchall()
+
+            # CONVERSÃO MÁGICA: Tupla -> Objeto
+            for t in tuplas:
+                # t[0]=id, t[1]=origem, etc.
+                nova_rota = Rota(t[0], t[1], t[2], t[3], t[4], t[5])
+                rotas_objetos.append(nova_rota)
+
+        if not rotas_objetos:
+            Interface.print_aviso("Nenhuma rota cadastrada.")
+            if mostrar_ids: return []
+        else:
+            for i, rota in enumerate(rotas_objetos):
+                # AGORA USAMOS ATRIBUTOS (.origem, .destino)
+                label = f" (ID: {rota.id})" if mostrar_ids else ""
+                print(f"\n--- Rota {i+1}{label} ---")
+                print(f"  {rota.origem} -> {rota.destino}")
+                print(f"  {rota.horario_partida} ({rota.dias_semana}) | Vagas: {rota.vagas_disponiveis}")
+
+        if not mostrar_ids:
+            print("\n")
+            Interface.input_personalizado("Enter para voltar...")
+        
+        return rotas_objetos # Retorna lista de objetos
+
+    def deletar_rota(self):
+        Interface.exibir_cabecalho("Deletar Rota")
+        # Recebe objetos Rota
+        rotas = self.visualizar_minhas_rotas(mostrar_ids=True)
+        if not rotas:
+            Interface.aguardar(2)
             return
 
-        if id_para_deletar in ids_validos:
-            try:
-                banco = sql.connect('pegai.db')
-                cursor = banco.cursor()
-                # A query de deleção TAMBÉM checa o motorista_id por segurança
-                cursor.execute(
-                    "DELETE FROM rotas WHERE id = ? AND motorista_id = ?",
-                    (id_para_deletar, motorista_id)
-                )
-                banco.commit()
-                util.print_sucesso(f"Rota {id_para_deletar} deletada com sucesso!")
-            except Exception as e:
-                util.print_erro(f"Ocorreu um erro ao deletar a rota: {e}")
-            finally:
-                banco.close()
-                util.aguardar(2)
-                return # Sai da função após a tentativa
-        else:
-            util.print_erro("ID inválido. Tente novamente.")
-            util.aguardar()
+        # Cria lista de IDs válidos usando o atributo .id do objeto
+        ids_validos = [str(r.id) for r in rotas]
 
+        while True:
+            id_del = Interface.input_personalizado("ID para deletar (ou 'voltar'): ").strip()
+            if Interface.checar_voltar(id_del): return
 
-def menu_motorista(motorista_id):
-    """Exibe o menu de opções para o motorista."""
-    opcao = ""
-    while opcao != '0':
-        util.exibir_cabecalho("Menu do Motorista")
-        print("[1] Cadastrar Nova Rota")
-        print("[2] Visualizar Minhas Rotas")
-        print("[3] Deletar Rota")
-        print("[0] Deslogar (Voltar ao menu principal)")
-        print()
-        opcao = util.input_personalizado("Escolha uma opção: ").strip()
+            if id_del in ids_validos:
+                try:
+                    with self.db.conectar() as conn:
+                        conn.execute("DELETE FROM rotas WHERE id = ? AND motorista_id = ?", (id_del, self.motorista_id))
+                        conn.commit()
+                    Interface.print_sucesso("Rota deletada!")
+                    Interface.aguardar(2)
+                    return
+                except Exception as e:
+                    Interface.print_erro(f"Erro: {e}")
+            else:
+                Interface.print_erro("ID inválido.")
 
-        if opcao == "1":
-            cadastrar_rota(motorista_id)
-        elif opcao == "2":
-            visualizar_minhas_rotas(motorista_id, mostrar_ids=False) # Apenas visualiza
-            util.input_personalizado("Pressione Enter para voltar ao menu...")
-        elif opcao == "3":
-            deletar_rota(motorista_id) # <-- NOVA CHAMADA
-        elif opcao == "0":
-            util.print_aviso("Deslogando...")
-            util.aguardar(1)
-            return # Retorna para a função de login
-        else:
-            util.print_erro("Opção inválida. Tente novamente.")
-            util.aguardar()
+    def menu(self):
+        opcao = ""
+        while opcao != '0':
+            Interface.exibir_cabecalho("Menu do Motorista")
+            print("[1] Cadastrar Nova Rota")
+            print("[2] Visualizar Minhas Rotas")
+            print("[3] Deletar Rota")
+            print("[0] Deslogar")
+            print()
+            print("(Digite 'voltar' para trocar de perfil)")
+            
+            opcao = Interface.input_personalizado("Opção: ").strip()
+
+            if opcao.lower() == 'voltar':
+                return False # <--- Voltar para escolha de perfil
+
+            if opcao == "1": self.cadastrar_rota()
+            elif opcao == "2": self.visualizar_minhas_rotas()
+            elif opcao == "3": self.deletar_rota()
+            elif opcao == "0":
+                Interface.print_aviso("Deslogando...")
+                Interface.aguardar(1)
+                return True 
+            else:
+                Interface.print_erro("Opção inválida.")
+                Interface.aguardar()
+        return True

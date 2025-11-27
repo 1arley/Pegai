@@ -1,51 +1,50 @@
 import os
 import time
-import sys
 
-
-# Define códigos de cores ANSI para personalização do terminal
 class Cores:
     VERDE = '\033[92m'
     AMARELO = '\033[93m'
     VERMELHO = '\033[91m'
     ROSA = '\033[95m'
-    FIM = '\033[0m'  # Reseta a cor para o padrão
+    FIM = '\033[0m'
 
-def limpar_tela():
-    """Limpa o terminal, compatível com Windows, Linux e macOS."""
-    os.system('cls' if os.name == 'nt' else 'clear')
+class Interface:
+    @staticmethod
+    def limpar_tela():
+        os.system('cls' if os.name == 'nt' else 'clear')
 
-def aguardar(segundos=1):
-    """Pausa a execução por um determinado número de segundos."""
-    time.sleep(segundos)
+    @staticmethod
+    def aguardar(segundos=1):
+        time.sleep(segundos)
 
-def exibir_cabecalho(titulo):
-    """Exibe um cabeçalho formatado e centralizado para as seções do menu."""
-    limpar_tela()
-    LARGURA = 60
-    print("=" * LARGURA)
-    print(titulo.center(LARGURA))
-    print("=" * LARGURA)
+    @staticmethod
+    def exibir_cabecalho(titulo):
+        Interface.limpar_tela()
+        largura = 60
+        print("=" * largura)
+        print(titulo.center(largura))
+        print("=" * largura)
 
-def print_sucesso(mensagem):
-    """Imprime uma mensagem de sucesso em verde."""
-    print(f"{Cores.VERDE}✅ {mensagem}{Cores.FIM}")
+    @staticmethod
+    def print_sucesso(mensagem):
+        print(f"{Cores.VERDE}✅ {mensagem}{Cores.FIM}")
 
-def print_erro(mensagem):
-    """Imprime uma mensagem de erro em vermelho."""
-    print(f"{Cores.VERMELHO}❌ {mensagem}{Cores.FIM}")
+    @staticmethod
+    def print_erro(mensagem):
+        print(f"{Cores.VERMELHO}❌ {mensagem}{Cores.FIM}")
 
-def print_aviso(mensagem):
-    """Imprime uma mensagem de aviso em amarelo."""
-    print(f"{Cores.AMARELO}⚠️ {mensagem}{Cores.FIM}")
+    @staticmethod
+    def print_aviso(mensagem):
+        print(f"{Cores.AMARELO}⚠️ {mensagem}{Cores.FIM}")
 
-def input_personalizado(prompt):
-    """Solicita uma entrada do usuário com uma cor amarela."""
-    return input(f"{Cores.ROSA}{prompt}{Cores.FIM}")
+    @staticmethod
+    def input_personalizado(prompt):
+        return input(f"{Cores.ROSA}{prompt}{Cores.FIM}")
 
-def checar_voltar(valor: str) -> bool:
-    if isinstance(valor, str) and valor.lower().strip() == 'voltar':
-        print_aviso("Operação cancelada pelo usuário.")
-        aguardar(1)
-        return True
-    return False
+    @staticmethod
+    def checar_voltar(valor: str) -> bool:
+        if isinstance(valor, str) and valor.lower().strip() == 'voltar':
+            Interface.print_aviso("Operação cancelada pelo usuário.")
+            Interface.aguardar(1)
+            return True
+        return False

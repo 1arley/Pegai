@@ -1,330 +1,274 @@
-import os
 import sqlite3 as sql
 import bcrypt as bc
-
-import database
 import re
 import time
-import a2f
-import util
-import rotas
-import passageiro
 
-# ---------------------------------------------------------------------------
-# Inicialização e configuração
-# ---------------------------------------------------------------------------
+from database import BancoDeDados
+from util import Interface
+from a2f import ServicoAutenticacao2FA
+from rotas import ControladorMotorista
+from passageiro import ControladorPassageiro
+from models import Usuario
 
-database.inicializar_banco()
-JWT_SECRET = os.getenv("JWT_SECRET", "chave_insegura_trocar_isto")
+class ControladorAutenticacao:
+    def __init__(self):
+        self.db = BancoDeDados()
+        self.a2f = ServicoAutenticacao2FA()
+        self.db.inicializar() # Garante que tabelas existam
 
-email_regex = re.compile(r"^[A-Za-z]+\.{1}[A-Za-z]+@ufrpe\.br$")
-senha_minima = 8
-senha_caracteres_proibidos = set(' \'"`;')
+    # --- Métodos Auxiliares ---
+        # --- COLA REGEX --- 
+        # ^                 : Início da string
+        # (?=.*[A-Z])       : Lookahead positivo - verifica se há pelo menos uma letra MAIÚSCULA
+        # (?=.*\d)          : Lookahead positivo - verifica se há pelo menos um NÚMERO
+        # .{9,}             : Aceita qualquer caractere, desde que tenha 9 ou mais repetições (mais de 8)
+        # $                 : Fim da string
 
-# ---------------------------------------------------------------------------
-# Funções utilitárias
-# ---------------------------------------------------------------------------
-
-def validar_nome(nome: str) -> bool:
-    return len(nome.strip()) > 3 and len(nome.strip()) < 30 and not any(char.isdigit() for char in nome)
-
-def validar_email(email: str) -> bool:
-    return bool(email_regex.fullmatch(email.strip()))
-
-def validar_senha(senha: str) -> bool:
-    if len(senha) < senha_minima:
-        util.print_erro(f"A senha deve ter no mínimo {senha_minima} caracteres.")
-        util.aguardar()
-        return False
-    if any(c in senha_caracteres_proibidos for c in senha):
-        util.print_erro("A senha contém caracteres proibidos.")
-        util.aguardar()
-        return False
-    if not any(c.isalpha() for c in senha):
-        util.print_erro("A senha deve conter pelo menos uma letra.")
-        util.aguardar()
-        return False
-    if not any(c.isdigit() for c in senha):
-        util.print_erro("A senha deve conter pelo menos um número.")
-        util.aguardar()
-        return False
-    return True
+    @staticmethod
+    def validar_email(email):
+        return re.match(r"^[A-Za-z]+\.{1}[A-Za-z]+@ufrpe\.br$", email.strip())
     
-def checar_voltar(valor: str) -> bool:
-    if isinstance(valor, str) and valor.lower().strip() == 'voltar':
-        util.print_aviso("Operação cancelada pelo usuário.")
-        util.aguardar(1)
-        return True
-    return False
-
-# ---------------------------------------------------------------------------
-# Cadastro de Motorista (Função Auxiliar)
-# ---------------------------------------------------------------------------
-
-def completar_cadastro_motorista(usuario_id):
-    """Função interna para adicionar dados de motorista e veículo."""
-    util.exibir_cabecalho("Cadastro de Motorista - Dados do Veículo")
-
-    # Placa
-    while True:
-        placa = util.input_personalizado("Placa do Veículo (ex: ABC1D23): ").strip().upper()
-        if util.checar_voltar(placa):
-            return
-        # Aceita padrão Mercosul (América Latina)
-        if not re.match(r"^[A-Z]{3}[0-9][A-Z][0-9]{2}$", placa):
-            util.print_erro("Modelo de placa inválido")
-            continue
-        break
-
-    # Modelo
-    while True:
-        modelo = util.input_personalizado("Modelo do Veículo (ex: Fiat Uno): ").strip()
-        if util.checar_voltar(modelo):
-            return
-        if len(modelo) > 30:
-            util.print_erro("Você excedeu o número máximo de caracteres.")
-            continue
-        if len(modelo) == 0:
-            util.print_erro("O modelo não pode ser vazio.")
-            continue
-        break
-
-    # Cor
-    while True:
-        cor = util.input_personalizado("Cor do Veículo (ex: Prata): ").strip()
-        if util.checar_voltar(cor):
-            return
-        if len(cor) > 30:
-            util.print_erro("Você excedeu o número máximo de caracteres.")
-            continue
-        if cor.isnumeric():
-            util.print_erro("A cor não pode conter números")
-            continue
-        if len(cor) == 0:
-            util.print_erro("A cor não pode ser vazia")
-            continue
-        break
-
-    try:
-        banco = sql.connect('pegai.db')
-        cursor = banco.cursor()
-
-        # Insere o veículo
-        cursor.execute(
-            "INSERT INTO veiculos (motorista_id, placa, modelo, cor) VALUES (?, ?, ?, ?)",
-            (usuario_id, placa, modelo, cor)
-        )
-
-        # Atualiza o status do usuário para motorista
-        cursor.execute("UPDATE usuarios SET eh_motorista = 1 WHERE id = ?", (usuario_id,))
-
-        banco.commit()
-        util.print_sucesso("Dados do veículo cadastrados! Você agora é um motorista.")
-
-    except sql.IntegrityError:
-        util.print_erro("Erro: A placa ou o motorista já possui um veículo cadastrado.")
-    except Exception as e:
-        util.print_erro(f"Um erro inesperado ocorreu: {e}")
-    finally:
-        banco.close()
-        util.aguardar(2)
-
-
-# ---------------------------------------------------------------------------
-# Cadastro (Fluxo Principal)
-# ---------------------------------------------------------------------------
-
-def registrar_usuario():
-    util.exibir_cabecalho("Cadastro de Novo Usuário, digite 'voltar' p/ sair.")
-
-    while True:
-        nome = util.input_personalizado("Nome completo: ").strip()
-        if checar_voltar(nome): return False
-        if validar_nome(nome): break
-        else:
-            util.print_erro("Nome inválido")
-            util.aguardar()
-
-    while True:
-        email = util.input_personalizado("Email (fulano.sobrenome@ufrpe.br): ").strip()
-        if checar_voltar(email): return False
-        if validar_email(email): break
-        else:
-            util.print_erro("Formato de email inválido.")
-            util.aguardar()
-
-    while True:
-        senha = util.input_personalizado("Senha: ")
-        if checar_voltar(senha): return False
-        if validar_senha(senha): break
-
-    while True:
-        confirma_senha = util.input_personalizado("Confirme a senha: ")
-        if checar_voltar(confirma_senha): return False
-        if senha == confirma_senha: break
-        else:
-            util.print_erro("As senhas não coincidem.")
-            util.aguardar()
-
-
-    codigo = a2f.gerar_codigo()
-    a2f.enviar_codigo_email(email, codigo)
-    expira_em = time.time() + 300
-
-    if not a2f.verificar_codigo(codigo, expira_em):
-        util.print_erro("Cadastro cancelado.")
-        util.aguardar(3)
-        return False
-
-    senha_bytes = senha.encode('utf-8')
-    hash_senha = bc.hashpw(senha_bytes, bc.gensalt())
-    
-    usuario_id_criado = None
-    try:
-        banco = sql.connect('pegai.db')
-        cursor = banco.cursor()
-        cursor.execute(
-            "INSERT INTO usuarios (nome, email, senha_hash) VALUES (?, ?, ?)",
-            (nome, email, hash_senha.decode('utf-8'))
-        )
-        usuario_id_criado = cursor.lastrowid
-        banco.commit()
-        util.print_sucesso("Usuário cadastrado com sucesso!")
-        util.aguardar(1)
+    @staticmethod
+    def validar_senha(senha):
+        erros = []
         
-    except sql.IntegrityError:
-        util.print_erro("Este e-mail já está cadastrado.")
-        util.aguardar(3)
-        return False
-    except Exception as e:
-        util.print_erro(f"Um erro ocorreu: {e}")
-        util.aguardar(3)
-        return False
-    finally:
-        banco.close()
+        # Verifica tamanho (baseado no seu regex .{8,})
+        if len(senha) < 8:
+            erros.append("ter no mínimo 8 caracteres")
+            
+        # Verifica letra maiúscula (baseado no seu regex (?=.*[A-Z]))
+        if not re.search(r"[A-Z]", senha):
+            erros.append("ter pelo menos uma letra maiúscula")
+            
+        # Verifica número (baseado no seu regex (?=.*\d))
+        if not re.search(r"\d", senha):
+            erros.append("ter pelo menos um número")
+            
+        return erros 
 
-    if usuario_id_criado:
+    @staticmethod
+    def completar_cadastro_motorista(usuario_id):
+        Interface.exibir_cabecalho("Cadastro de Veículo")
+        
         while True:
-            resposta = util.input_personalizado("Deseja se cadastrar também como motorista? (s/n): ").lower().strip()
-            if checar_voltar(resposta): break
-            if resposta == 's':
-                completar_cadastro_motorista(usuario_id_criado)
-                break
-            elif resposta == 'n':
-                util.print_aviso("Cadastro finalizado como passageiro.")
-                util.aguardar(2)
-                break
+            placa = Interface.input_personalizado("Placa (ex: ABC1D23): ").strip().upper()
+            # Se digitar voltar, retorna False para não deslogar
+            if Interface.checar_voltar(placa): return False 
+
+            if not re.match(r"^[A-Z]{3}[0-9][A-Z][0-9]{2}$", placa):
+                Interface.print_erro("Placa inválida.")
+                continue
+            break
+
+        modelo = Interface.input_personalizado("Modelo: ").strip()
+        if Interface.checar_voltar(modelo): return False
+
+        cor = Interface.input_personalizado("Cor: ").strip()
+        if Interface.checar_voltar(cor): return False
+        
+        db = BancoDeDados()
+        try:
+            with db.conectar() as conn:
+                # Tenta inserir o veículo
+                conn.execute("INSERT INTO veiculos (motorista_id, placa, modelo, cor) VALUES (?, ?, ?, ?)", (usuario_id, placa, modelo, cor))
+                # Garante que o usuário está marcado como motorista
+                conn.execute("UPDATE usuarios SET eh_motorista = 1 WHERE id = ?", (usuario_id,))
+                conn.commit()
+            
+            Interface.print_sucesso("Veículo cadastrado com sucesso!")
+            return True # Retorna True indicando sucesso
+        
+        except sql.IntegrityError as e:
+            # Tratamento de erro amigável
+            erro_str = str(e).lower()
+            if "placa" in erro_str or "unique constraint failed: veiculos.placa" in erro_str:
+                Interface.print_erro("Erro: Esta placa já está cadastrada no sistema.")
+            elif "motorista_id" in erro_str or "unique constraint failed: veiculos.motorista_id" in erro_str:
+                Interface.print_erro("Erro: Você já possui um veículo cadastrado.")
             else:
-                util.print_erro("Opção inválida. Digite 's' ou 'n'.")
+                Interface.print_erro(f"Erro de integridade no banco: {e}")
+            return False # Retorna False pois falhou
+                
+        except Exception as e:
+            Interface.print_erro(f"Erro inesperado: {e}")
+            return False
+        finally:
+            Interface.aguardar(3)
 
-# ---------------------------------------------------------------------------
-# Login (com seleção de perfil)
-# ---------------------------------------------------------------------------
+    # --- Fluxos Principais ---
 
-def login_usuario():
-    util.exibir_cabecalho("Login de Usuário, digite 'voltar' p/ sair.")
-    email = util.input_personalizado("Email: ")
-    if checar_voltar(email): return False
-    senha = util.input_personalizado("Senha: ")
-    if checar_voltar(senha): return False
+    def registrar(self):
+        Interface.exibir_cabecalho("Cadastro")
+        nome = Interface.input_personalizado("Nome: ").strip()
+        if Interface.checar_voltar(nome): return
 
-    banco = sql.connect('pegai.db')
-    cursor = banco.cursor()
-    cursor.execute("SELECT id, senha_hash, eh_motorista FROM usuarios WHERE email = ?", (email,))
-    resultado = cursor.fetchone()
-    banco.close()
+        email = Interface.input_personalizado("Email (@ufrpe.br): ").strip()
+        if Interface.checar_voltar(email): return
+        if not self.validar_email(email):
+            Interface.print_erro("Email inválido.")
+            Interface.aguardar(2); return
 
-    if not resultado:
-        util.print_erro("Email não encontrado.")
-        util.aguardar()
-        return False
-
-    usuario_id, senha_hash_armazenada, eh_motorista = resultado
-    
-    if not bc.checkpw(senha.encode('utf-8'), senha_hash_armazenada.encode('utf-8')):
-        util.print_erro("Senha incorreta.")
-        util.aguardar()
-        return False
-
-    codigo = a2f.gerar_codigo()
-    a2f.enviar_codigo_email(email, codigo)
-    expira_em = time.time() + 300
-
-    if not a2f.verificar_codigo(codigo, expira_em):
-        util.print_erro("Login cancelado.")
-        util.aguardar(3)
-        return False
-    
-    util.print_sucesso("Login realizado com sucesso!")
-    util.aguardar(1)
-    
-    # --- LÓGICA DE SELEÇÃO DE PERFIL ---
-    
-    if eh_motorista:
+        senha = ""
         while True:
-            util.exibir_cabecalho("Escolha seu modo de acesso")
-            print("[1] Entrar como Passageiro")
-            print("[2] Entrar como Motorista")
-            modo = util.input_personalizado("Opção: ").strip()
+            # 1. Pede a senha original
+            senha = Interface.input_personalizado("Senha: ")
+            if Interface.checar_voltar(senha): return
 
-            if modo == '1':
-                passageiro.menu_passageiro(usuario_id) # <-- ALTERADO
-                return True
-            elif modo == '2':
-                rotas.menu_motorista(usuario_id)
-                return True
+            # 2. Verifica se a senha cumpre os requisitos (Letra, Número, Tamanho)
+            lista_erros = self.validar_senha(senha)
+            if lista_erros:
+                msg_erro = "Senha inválida. Faltam: " + ", ".join(lista_erros) + "."
+                Interface.print_erro(msg_erro)
+                continue # Volta para o início do loop (pede a senha de novo)
+
+            # 3. Pede a confirmação
+            confirma_senha = Interface.input_personalizado("Confirme a senha: ")
+            if Interface.checar_voltar(confirma_senha): return
+
+            # 4. Verifica se são iguais
+            if senha == confirma_senha:
+                break # Tudo certo! Sai do loop.
             else:
-                util.print_erro("Opção inválida. Tente novamente.")
-                util.aguardar()
-    else:
-        # Usuário é apenas passageiro
-        passageiro.menu_passageiro(usuario_id) # <-- ALTERADO
-        return True
+                Interface.print_erro("As senhas não coincidem. Por favor, digite ambas novamente.")
+                Interface.aguardar(1)
+        
+        # 2FA
+        cod = self.a2f.gerar_codigo()
+        self.a2f.enviar_codigo_email(email, cod)
+        if not self.a2f.verificar_codigo(cod, time.time() + 300):
+            return
 
-# ---------------------------------------------------------------------------
-# Recuperar senha
-# ---------------------------------------------------------------------------
+        hash_senha = bc.hashpw(senha.encode('utf-8'), bc.gensalt())
 
-def recuperar_senha():
-    util.exibir_cabecalho("Recuperação de Senha de Usuário, digite 'voltar' p/ sair.")
-    email = util.input_personalizado("Digite o e-mail cadastrado: ")
-    if checar_voltar(email):
-        return False
+        try:
+            with self.db.conectar() as conn:
+                cursor = conn.cursor()
+                cursor.execute("INSERT INTO usuarios (nome, email, senha_hash) VALUES (?, ?, ?)", (nome, email, hash_senha.decode('utf-8')))
+                uid = cursor.lastrowid
+                conn.commit()
+            Interface.print_sucesso("Cadastrado!")
+            
+            resp = Interface.input_personalizado("Cadastrar como motorista? (s/n): ").lower()
+            if resp == 's': self.completar_cadastro_motorista(uid)
+            
+        except sql.IntegrityError:
+            Interface.print_erro("Email já existe.")
+            Interface.aguardar(2)
 
-    banco = sql.connect('pegai.db')
-    cursor = banco.cursor()
-    cursor.execute("SELECT nome FROM usuarios WHERE email = ?", (email,))
-    resultado = cursor.fetchone()
-    banco.close()
+    def login(self):
+        Interface.exibir_cabecalho("Login")
+        email = Interface.input_personalizado("Email: ").strip()
+        if Interface.checar_voltar(email): return
+        senha = Interface.input_personalizado("Senha: ")
+        if Interface.checar_voltar(senha): return
 
-    if not resultado:
-        util.print_erro("Email não encontrado.")
-        util.aguardar()
-        return False
+        # Busca dados no banco
+        res = None
+        with self.db.conectar() as conn:
+            res = conn.execute("SELECT id, nome, email, senha_hash, eh_motorista FROM usuarios WHERE email = ?", (email,)).fetchone()
 
-    codigo = a2f.gerar_codigo()
-    a2f.enviar_codigo_email(email, codigo)
-    expira_em = time.time() + 300
+        if not res:
+            Interface.print_erro("Usuário não encontrado.")
+            Interface.aguardar(2); return
 
-    if not a2f.verificar_codigo(codigo, expira_em):
-        util.print_erro("Falha na verificação. Operação cancelada.")
-        util.aguardar(3)
-        return False
+        uid, nome, email_db, senha_hash, eh_motorista = res
+        
+        if not bc.checkpw(senha.encode('utf-8'), senha_hash.encode('utf-8')):
+            Interface.print_erro("Senha incorreta.")
+            Interface.aguardar(2); return
 
-    nova_senha = util.input_personalizado("Nova senha: ")
-    if not validar_senha(nova_senha):
-        util.print_erro("Senha inválida.")
-        util.aguardar()
-        return False
+        # 2FA
+        cod = self.a2f.gerar_codigo()
+        self.a2f.enviar_codigo_email(email, cod)
+        if not self.a2f.verificar_codigo(cod, time.time() + 300):
+            return
+        
+        usuario_logado = Usuario(uid, nome, email_db, eh_motorista)
+        Interface.print_sucesso(f"Bem-vindo, {usuario_logado.nome}!")
+        Interface.aguardar(1)
 
-    hash_senha = bc.hashpw(nova_senha.encode('utf-8'), bc.gensalt())
+        # --- LÓGICA DE NAVEGAÇÃO CORRIGIDA --- ps obrigado revisores
+        
+        if usuario_logado.eh_motorista:
+            while True:
+                Interface.exibir_cabecalho("Escolha o Perfil")
+                print("[1] Passageiro")
+                print("[2] Motorista")
+                
+                # Tratamento do input: prompt limpo, input normalizado
+                op = Interface.input_personalizado("Opção: ").strip().lower()
+                
+                deslogar = False # Variável de controle
 
-    banco = sql.connect('pegai.db')
-    cursor = banco.cursor()
-    cursor.execute("UPDATE usuarios SET senha_hash = ? WHERE email = ?", (hash_senha.decode('utf-8'), email))
-    banco.commit()
-    banco.close()
+                if op == '1': 
+                    # Captura o retorno: True (sair) ou False (voltar)
+                    deslogar = ControladorPassageiro(usuario_logado).menu()
+                elif op == '2': 
+                    deslogar = ControladorMotorista(usuario_logado.id).menu() 
+                else: 
+                    Interface.print_erro("Inválido")
+                    Interface.aguardar(1)
+                    continue
 
-    util.print_sucesso("Senha redefinida com sucesso!")
-    util.aguardar(2)
-    return True
+                # Se o menu retornou True (Deslogar), encerra o login
+                if deslogar:
+                    return 
+                
+                # Se deslogar for False (digitou 'voltar'), o loop repete e mostra as opções de perfil
+        else:
+            # Usuário apenas passageiro não tem escolha de perfil, sai direto ao terminar
+            ControladorPassageiro(usuario_logado).menu()
+            return
+        
+    def recuperar_senha(self):
+        Interface.exibir_cabecalho("Recuperação de Senha")
+        email = Interface.input_personalizado("Email cadastrado: ").strip()
+        if Interface.checar_voltar(email): return
+
+        # 1. Verifica se o email existe antes de pedir código
+        with self.db.conectar() as conn:
+            exists = conn.execute("SELECT id FROM usuarios WHERE email = ?", (email,)).fetchone()
+        
+        if not exists:
+            Interface.print_erro("Email não encontrado no sistema.")
+            Interface.aguardar(2); return
+
+        # 2. Verificação em Duas Etapas (2FA)
+        cod = self.a2f.gerar_codigo()
+        self.a2f.enviar_codigo_email(email, cod)
+        if not self.a2f.verificar_codigo(cod, time.time() + 300):
+            return
+
+        # 3. Definição da Nova Senha (COM VALIDAÇÃO)
+        nova_senha = ""
+        while True:
+            nova_senha = Interface.input_personalizado("Nova senha: ")
+            if Interface.checar_voltar(nova_senha): return
+
+            # Valida os requisitos (Maiúscula, Número, Tamanho)
+            erros = self.validar_senha(nova_senha)
+            if erros:
+                msg = "Senha fraca. Faltam: " + ", ".join(erros) + "."
+                Interface.print_erro(msg)
+                continue # Pede a senha novamente
+
+            confirma = Interface.input_personalizado("Confirme a nova senha: ")
+            if Interface.checar_voltar(confirma): return
+
+            if nova_senha == confirma:
+                break # Sai do loop se tudo estiver correto
+            else:
+                Interface.print_erro("As senhas não coincidem. Tente novamente.")
+                # Loop reinicia pedindo a senha original
+
+        h_nova = bc.hashpw(nova_senha.encode('utf-8'), bc.gensalt())
+        
+        try:
+            with self.db.conectar() as conn:
+                conn.execute("UPDATE usuarios SET senha_hash = ? WHERE email = ?", (h_nova.decode('utf-8'), email))
+                conn.commit()
+            Interface.print_sucesso("Senha alterada com sucesso!")
+        except Exception as e:
+            Interface.print_erro(f"Erro ao atualizar senha: {e}")
+            
+        Interface.aguardar(2)
