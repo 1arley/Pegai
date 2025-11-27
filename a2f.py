@@ -8,7 +8,7 @@ from util import Interface
 class ServicoAutenticacao2FA:
     def __init__(self):
         self.email_remetente = os.getenv("EMAIL_REMETENTE", "arthur.iarley@ufrpe.br")
-        self.email_senha = os.getenv("EMAIL_SENHA", "xcit nwrc tplg ufu") # xcit nwrc tplg ufum
+        self.email_senha = os.getenv("EMAIL_SENHA", "xcit nwrc tplg ufum") # xcit nwrc tplg ufum
 
     def gerar_codigo(self):
         return str(random.randint(100000, 999999))
