@@ -4,7 +4,6 @@ from util import Interface
 
 class ServicoMapas:
     def __init__(self):
-        # user_agent é obrigatório para identificar seu app no OpenStreetMap
         self.geolocator = Nominatim(user_agent="pegai_ufrpe_app")
 
     def obter_coordenadas(self, endereco):
