@@ -197,7 +197,7 @@ class ControladorPassageiro:
             
             print("-" * 30)
 
-        # Loop simples para 'simular' tempo real (o usuário aperta Enter para atualizar)
+        # Loop q serve para 'simular' tempo real
         print("\n[1] Atualizar Status")
         print("[0] Voltar")
         op = Interface.input_personalizado("Opção: ").strip()
@@ -211,7 +211,6 @@ class ControladorPassageiro:
         Interface.exibir_cabecalho("Avaliar Motorista")
         
         # 1. Listar viagens elegíveis (CONCLUÍDA e SEM avaliação deste autor)
-        # Isso melhora a UX pois o usuário não precisa adivinhar quais pode avaliar
         print("--- Viagens Pendentes de Avaliação ---")
         query_pendentes = """
             SELECT v.id, r.origem, r.destino, u.nome
@@ -250,7 +249,7 @@ class ControladorPassageiro:
                 WHERE v.id = ? AND v.passageiro_id = ?
             """, (viagem_id, self.usuario_id)).fetchone()
 
-            # FLUXO DE ERRO 1: Viagem inexistente ou de outro usuário
+            # Viagem inexistente ou de outro usuário
             if not dados_viagem:
                 Interface.print_erro("Viagem não encontrada ou não pertence a você.")
                 Interface.aguardar(2)
@@ -258,14 +257,13 @@ class ControladorPassageiro:
 
             status_atual, motorista_id = dados_viagem
 
-            # FLUXO DE ERRO 2: Tentar avaliar viagem não concluída
+            # Tentar avaliar viagem não concluída
             if status_atual != 'CONCLUÍDA':
                 Interface.print_erro(f"Ação Bloqueada: O status atual é '{status_atual}'.")
                 Interface.print_aviso("Avaliação disponível apenas após a viagem ser CONCLUÍDA.")
                 Interface.aguardar(3)
                 return
-
-            # FLUXO DE ERRO 3: Duplicidade (Já avaliou antes?)
+                
             # Verifica se já existe um registro na tabela avaliacoes para essa viagem e autor
             ja_avaliou = conn.execute(
                 "SELECT 1 FROM avaliacoes WHERE viagem_id = ? AND autor_id = ?", 
