@@ -99,10 +99,11 @@ Teclado: A interação é feita digitando as opções numéricas apresentadas no
 🎯 Objetivo do Projeto
 Criar um sistema de caronas funcional e seguro em modo console, focado na comunidade acadêmica da UFRPE. O projeto visa aplicar conceitos de banco de dados, autenticação de usuários, hashing de senhas e interação modularizada em Python.
 
-👨‍💻 Desenvolvedor
-Aluno: Arthur Iarley (baseado no email arthur.iarley@ufrpe.br e no caminho do arquivo 1arley/pegai)
+👨‍💻 Desenvolvedor: 
+Arthur Iarley
+Luis Gabriel
 
-Projeto Acadêmico (disciplina de Programação da UFRPE, inferido).
+Projeto Acadêmico.
 
 🧠 Aprendizados
 Este projeto permitiu praticar:
