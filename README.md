@@ -1,9 +1,11 @@
 🚗 Pegai
+
 Pegai é um protótipo de aplicativo de transporte em modo console (CLI) desenvolvido em Python. O projeto simula um sistema de caronas exclusivo para estudantes da UFRPE, exigindo autenticação via email institucional (@ufrpe.br) e verificação em duas etapas (2FA) por email para garantir a segurança.
 
 O sistema é dividido em dois perfis principais: Passageiro, que pode buscar rotas, e Motorista, que pode criar e gerenciar suas próprias rotas.
 
 📌 Funcionalidades Principais
+
 Sistema de Autenticação Seguro:
 
 Cadastro de usuário com validação de email (@ufrpe.br).
@@ -54,7 +56,9 @@ Pegai/
 ├── util.py         # Funções utilitárias (limpar tela, cores, cabeçalhos)
 ├── pegai.db        # Banco de dados (criado na primeira execução)
 └── README.md       # Este arquivo
+
 🛠️ Bibliotecas usadas:
+
 bcrypt (para hashing de senha)
 
 sqlite3 (para banco de dados)
@@ -63,30 +67,25 @@ smtplib (para envio de emails 2FA)
 
 re (para validação de dados, ex: email e placas)
 
+geopy (localização)
+
 os, time, sys (bibliotecas padrão)
 
 🚀 Como Executar
+
 Requisitos:
 
 Python 3.12+
 
-Biblioteca bcrypt
+Biblioteca bcrypt, geopy
 
 Instalação das dependências:
 
 Bash
 
 pip install bcrypt
-Configuração do Email (Crítico para 2FA): Para o envio de códigos de verificação funcionar, você DEVE configurar suas credenciais de email no arquivo a2f.py.
+pip install geopy
 
-Nota: É altamente recomendável usar uma "Senha de App" do Google em vez de sua senha principal.
-
-Altere estas linhas em a2f.py:
-
-Python
-
-EMAIL_REMETENTE = os.getenv("EMAIL_REMETENTE", "seu-email-aqui@gmail.com")
-EMAIL_SENHA = os.getenv("EMAIL_SENHA", "sua-senha-de-app-aqui")
 Executar o projeto:
 
 Bash
@@ -100,10 +99,11 @@ Teclado: A interação é feita digitando as opções numéricas apresentadas no
 🎯 Objetivo do Projeto
 Criar um sistema de caronas funcional e seguro em modo console, focado na comunidade acadêmica da UFRPE. O projeto visa aplicar conceitos de banco de dados, autenticação de usuários, hashing de senhas e interação modularizada em Python.
 
-👨‍💻 Desenvolvedor
-Aluno: Arthur Iarley (baseado no email arthur.iarley@ufrpe.br e no caminho do arquivo 1arley/pegai)
+👨‍💻 Desenvolvedor: 
+Arthur Iarley
+Luis Gabriel
 
-Projeto Acadêmico (disciplina de Programação da UFRPE, inferido).
+Projeto Acadêmico.
 
 🧠 Aprendizados
 Este projeto permitiu praticar:

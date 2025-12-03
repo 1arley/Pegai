@@ -3,52 +3,69 @@ import smtplib
 import random
 import time
 from email.message import EmailMessage
-import util
+from util import Interface
 
-# ---------------------------------------------------------------------------
-# Configurações
-# ---------------------------------------------------------------------------
+class ServicoAutenticacao2FA:
+    def __init__(self):
+        self.email_remetente = os.getenv("EMAIL_REMETENTE", "arthur.iarley@ufrpe.br")
+        self.email_senha = os.getenv("EMAIL_SENHA", "xcit nwrc tplg ufum") # xcit nwrc tplg ufum
 
-EMAIL_REMETENTE = os.getenv("EMAIL_REMETENTE", "arthur.iarley@ufrpe.br")
-EMAIL_SENHA = os.getenv("EMAIL_SENHA", "xcit nwrc tplg ufum")
+    def gerar_codigo(self):
+        return str(random.randint(100000, 999999))
 
-# ---------------------------------------------------------------------------
-# Geração e envio de códigos
-# ---------------------------------------------------------------------------
+    def enviar_codigo_email(self, email, codigo):
+        msg = EmailMessage()
+        msg['Subject'] = 'Código de Verificação - Pegai'
+        msg['From'] = self.email_remetente
+        msg['To'] = email
+        msg.set_content(
+            f"Seu código de verificação é: {codigo}\n"
+            f"Este código expira em 5 minutos.\n\n"
+            f"Equipe Pegai"
+        )
 
-def gerar_codigo():
-    """Gera um código aleatório de 6 dígitos"""
-    return str(random.randint(100000, 999999))
+        try:
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+                smtp.login(self.email_remetente, self.email_senha)
+                smtp.send_message(msg)
+            Interface.print_sucesso("Código de verificação enviado ao e-mail informado.")
+        except Exception as e:
+            Interface.print_aviso(f"Erro ao enviar e-mail: {e}")
+            Interface.print_aviso(f"(Modo Teste: código é {codigo})")
 
-def enviar_codigo_email(email, codigo):
-    """Envia um código de verificação por e-mail"""
-    msg = EmailMessage()
-    msg['Subject'] = 'Código de Verificação - Pegai'
-    msg['From'] = EMAIL_REMETENTE
-    msg['To'] = email
-    msg.set_content(
-        f"Seu código de verificação é: {codigo}\n"
-        f"Este código expira em 5 minutos.\n\n"
-        f"Equipe Pegai"
-    )
+    def verificar_codigo(self, codigo_gerado, expira_em):
+        for _ in range(3):
+            codigo_digitado = Interface.input_personalizado("Digite o código de 6 dígitos: ")
+            if codigo_digitado == codigo_gerado and time.time() < expira_em:
+                Interface.print_sucesso("Verificação concluída!")
+                return True
+            else:
+                Interface.print_erro("Código incorreto ou expirado.")
+        Interface.print_erro("Falha na verificação.")
+        return False
+    
+    def enviar_aviso_viagem(self, email_destino, nome_passageiro, novo_status, detalhes_rota):
+        msg = EmailMessage()
+        msg['Subject'] = f'Atualização de Viagem: {novo_status} - Pegai'
+        msg['From'] = self.email_remetente
+        msg['To'] = email_destino
+        
+        texto = f"""
+        Olá, {nome_passageiro}!
+        
+        O status da sua viagem mudou para: {novo_status}.
+        Rota: {detalhes_rota}
+        
+        Acesse o app para mais detalhes.
+        Equipe Pegai
+        """
+        msg.set_content(texto)
 
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(EMAIL_REMETENTE, EMAIL_SENHA)
-            smtp.send_message(msg)
-        util.print_sucesso("Código de verificação enviado ao e-mail informado.")
-    except Exception as e:
-        util.print_aviso(f"Erro ao enviar e-mail: {e}")
-        util.print_aviso(f"(Para testes, use o código gerado: {codigo})")
-
-def verificar_codigo(codigo_gerado, expira_em):
-    """Valida o código digitado pelo usuário"""
-    for tentativa in range(3):
-        codigo_digitado = util.input_personalizado("Digite o código de 6 dígitos enviado ao seu e-mail: ")
-        if codigo_digitado == codigo_gerado and time.time() < expira_em:
-            util.print_sucesso("Verificação concluída com sucesso!")
-            return True
-        else:
-            util.print_erro("Código incorreto ou expirado. Tente novamente.")
-    util.print_erro("Falha na verificação.")
-    return False    
+        try:
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+                smtp.login(self.email_remetente, self.email_senha)
+                smtp.send_message(msg)
+            # Não imprimimos sucesso aqui para não poluir a tela do motorista
+        except Exception as e:
+            # Falha silenciosa ou log
+            pass
