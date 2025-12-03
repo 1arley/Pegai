@@ -1,4 +1,3 @@
-# Crie o arquivo mapas.py
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 from util import Interface
