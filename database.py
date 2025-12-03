@@ -80,7 +80,7 @@ class BancoDeDados:
                 )
             ''')
             
-            # Migrações seguras (caso colunas não existam)
+            # Migrações
             try: cursor.execute("ALTER TABLE usuarios ADD COLUMN codigo_2fa TEXT;")
             except sql.OperationalError: pass
             try: cursor.execute("ALTER TABLE usuarios ADD COLUMN expira_em REAL;")
