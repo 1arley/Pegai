@@ -148,7 +148,7 @@ class ControladorMotorista:
             cursor.execute("SELECT id, origem, destino, horario_partida, dias_semana, vagas_disponiveis FROM rotas WHERE motorista_id = ?", (self.motorista_id,))
             tuplas = cursor.fetchall()
 
-            # CONVERSÃO MÁGICA: Tupla -> Objeto
+            # Conversão de Tupla -> Objeto
             for t in tuplas:
                 # t[0]=id, t[1]=origem, etc.
                 nova_rota = Rota(t[0], t[1], t[2], t[3], t[4], t[5])
@@ -218,7 +218,7 @@ class ControladorMotorista:
             
             status_atual = res[0]
 
-            # 2. Regras de Transição (State Machine)
+            # 2. Regras de Transição
             transicoes_validas = {
                 'PENDENTE': ['ACEITA', 'RECUSADA'], # Só pode ir para Aceita ou Recusada
                 'ACEITA': ['CONCLUÍDA'],            # Só pode ir para Concluída
@@ -304,7 +304,6 @@ class ControladorMotorista:
             return
 
         # Tenta mudar o status usando a regra de validação
-        # Fluxo Feliz: PENDENTE -> ACEITA
         self._atualizar_status(escolha, 'ACEITA')
 
     def gerenciar_viagens_ativas(self):
