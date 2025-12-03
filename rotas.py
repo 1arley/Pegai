@@ -85,7 +85,7 @@ class ControladorMotorista:
                 continue
             vagas = int(vagas_str)
             if vagas >= 50:
-                Interface.print_erro("Isso não é um ônibus.")
+                Interface.print_erro("Você não tem algo desse tamanho.")
                 continue
             break
 
