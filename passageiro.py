@@ -303,8 +303,7 @@ class ControladorPassageiro:
                 Interface.aguardar(2)
             except Exception as e:
                 Interface.print_erro(f"Erro ao salvar avaliação: {e}")
-    import time # Certifique-se de importar time no topo
-
+                
     def acompanhar_viagem_tempo_real(self):
         """
         Bloqueia o terminal e atualiza o status a cada 5 segundos.
