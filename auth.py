@@ -32,15 +32,15 @@ class ControladorAutenticacao:
     def validar_senha(senha):
         erros = []
         
-        # Verifica tamanho (baseado no seu regex .{8,})
+        # Verifica tamanho
         if len(senha) < 8:
             erros.append("ter no mínimo 8 caracteres")
             
-        # Verifica letra maiúscula (baseado no seu regex (?=.*[A-Z]))
+        # Verifica letra maiúscula 
         if not re.search(r"[A-Z]", senha):
             erros.append("ter pelo menos uma letra maiúscula")
             
-        # Verifica número (baseado no seu regex (?=.*\d))
+        # Verifica número 
         if not re.search(r"\d", senha):
             erros.append("ter pelo menos um número")
             
