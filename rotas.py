@@ -333,9 +333,7 @@ class ControladorMotorista:
 
         escolha = Interface.input_personalizado("Digite o ID para concluir (ou 'voltar'): ").strip()
         if Interface.checar_voltar(escolha): return
-        
-        # Tentativa de Erro (Simulação): Se o usuário tentasse algo errado aqui, o _atualizar_status barraria.
-        # Fluxo Feliz: ACEITA -> CONCLUÍDA
+            
         self._atualizar_status(escolha, 'CONCLUÍDA')
 
     def menu(self):
