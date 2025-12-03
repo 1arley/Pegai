@@ -47,7 +47,7 @@ class ControladorAutenticacao:
         return erros 
 
     @staticmethod
-    def completar_cadastro_motorista(usuario_id):
+    def completar_cadastro_motorista(urio_id):
         Interface.exibir_cabecalho("Cadastro de Veículo")
         
         while True:
@@ -70,9 +70,9 @@ class ControladorAutenticacao:
         try:
             with db.conectar() as conn:
                 # Tenta inserir o veículo
-                conn.execute("INSERT INTO veiculos (motorista_id, placa, modelo, cor) VALUES (?, ?, ?, ?)", (usuario_id, placa, modelo, cor))
-                # Garante que o usuário está marcado como motorista
-                conn.execute("UPDATE usuarios SET eh_motorista = 1 WHERE id = ?", (usuario_id,))
+                conn.execute("INSERT INTO veiculos (motorista_id, placa, modelo, cor) VALUES (?, ?, ?, ?)", (urio_id, placa, modelo, cor))
+                # Garante que o urio está marcado como motorista
+                conn.execute("UPDATE urios SET eh_motorista = 1 WHERE id = ?", (urio_id,))
                 conn.commit()
             
             Interface.print_sucesso("Veículo cadastrado com sucesso!")
@@ -143,7 +143,7 @@ class ControladorAutenticacao:
         try:
             with self.db.conectar() as conn:
                 cursor = conn.cursor()
-                cursor.execute("INSERT INTO usuarios (nome, email, senha_hash) VALUES (?, ?, ?)", (nome, email, hash_senha.decode('utf-8')))
+                cursor.execute("INSERT INTO urios (nome, email, senha_hash) VALUES (?, ?, ?)", (nome, email, hash_senha.decode('utf-8')))
                 uid = cursor.lastrowid
                 conn.commit()
             Interface.print_sucesso("Cadastrado!")
@@ -165,10 +165,10 @@ class ControladorAutenticacao:
         # Busca dados no banco
         res = None
         with self.db.conectar() as conn:
-            res = conn.execute("SELECT id, nome, email, senha_hash, eh_motorista FROM usuarios WHERE email = ?", (email,)).fetchone()
+            res = conn.execute("SELECT id, nome, email, senha_hash, eh_motorista FROM urios WHERE email = ?", (email,)).fetchone()
 
         if not res:
-            Interface.print_erro("Usuário não encontrado.")
+            Interface.print_erro("Urio não encontrado.")
             Interface.aguardar(2); return
 
         uid, nome, email_db, senha_hash, eh_motorista = res
@@ -183,13 +183,13 @@ class ControladorAutenticacao:
         if not self.a2f.verificar_codigo(cod, time.time() + 300):
             return
         
-        usuario_logado = Usuario(uid, nome, email_db, eh_motorista)
-        Interface.print_sucesso(f"Bem-vindo, {usuario_logado.nome}!")
+        urio_logado = Urio(uid, nome, email_db, eh_motorista)
+        Interface.print_sucesso(f"Bem-vindo, {urio_logado.nome}!")
         Interface.aguardar(1)
 
         # --- LÓGICA DE NAVEGAÇÃO CORRIGIDA --- ps obrigado revisores
         
-        if usuario_logado.eh_motorista:
+        if urio_logado.eh_motorista:
             while True:
                 Interface.exibir_cabecalho("Escolha o Perfil")
                 print("[1] Passageiro")
@@ -202,9 +202,9 @@ class ControladorAutenticacao:
 
                 if op == '1': 
                     # Captura o retorno: True (sair) ou False (voltar)
-                    deslogar = ControladorPassageiro(usuario_logado).menu()
+                    deslogar = ControladorPassageiro(urio_logado).menu()
                 elif op == '2': 
-                    deslogar = ControladorMotorista(usuario_logado.id).menu() 
+                    deslogar = ControladorMotorista(urio_logado.id).menu() 
                 else: 
                     Interface.print_erro("Inválido")
                     Interface.aguardar(1)
@@ -216,8 +216,8 @@ class ControladorAutenticacao:
                 
                 # Se deslogar for False (digitou 'voltar'), o loop repete e mostra as opções de perfil
         else:
-            # Usuário apenas passageiro não tem escolha de perfil, sai direto ao terminar
-            ControladorPassageiro(usuario_logado).menu()
+            # Urio apenas passageiro não tem escolha de perfil, sai direto ao terminar
+            ControladorPassageiro(urio_logado).menu()
             return
         
     def recuperar_senha(self):
@@ -227,7 +227,7 @@ class ControladorAutenticacao:
 
         # 1. Verifica se o email existe antes de pedir código
         with self.db.conectar() as conn:
-            exists = conn.execute("SELECT id FROM usuarios WHERE email = ?", (email,)).fetchone()
+            exists = conn.execute("SELECT id FROM urios WHERE email = ?", (email,)).fetchone()
         
         if not exists:
             Interface.print_erro("Email não encontrado no sistema.")
