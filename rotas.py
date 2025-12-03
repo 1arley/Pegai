@@ -230,7 +230,7 @@ class ControladorMotorista:
             if novo_status not in transicoes_validas.get(status_atual, []):
                 Interface.print_erro(f"🚫 Ação Bloqueada: Não é possível mudar de '{status_atual}' para '{novo_status}'.")
                 if status_atual == 'PENDENTE' and novo_status == 'CONCLUÍDA':
-                    Interface.print_aviso("Dica: Você precisa ACEITAR a viagem antes de concluí-la.")
+                    Interface.print_aviso("Você precisa ACEITAR a viagem antes de concluí-la.")
                 Interface.aguardar(3)
                 return False
 
