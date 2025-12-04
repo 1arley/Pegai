@@ -153,6 +153,7 @@ class ControladorPassageiro:
         
         print("="*60)
         Interface.input_personalizado("Pressione Enter para voltar...")
+
     def acompanhar_viagem(self):
         Interface.exibir_cabecalho("Acompanhar Viagem Atual")
         
@@ -346,7 +347,7 @@ class ControladorPassageiro:
                     print(f"STATUS ATUAL: {Cores.AMARELO}⏳ PENDENTE{Cores.FIM}")
                 elif status == 'ACEITA':
                     print(f"STATUS ATUAL: {Cores.VERDE}✅ ACEITA! (Prepare-se){Cores.FIM}")
-                    # Aqui poderíamos tocar um som (print('\a') as vezes funciona no Windows)
+
                     print("\a") 
 
                 print(f"\nÚltima atualização: {time.strftime('%H:%M:%S')}")

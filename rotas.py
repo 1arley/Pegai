@@ -140,17 +140,14 @@ class ControladorMotorista:
         """
         Interface.exibir_cabecalho("Minhas Rotas")
         
-        rotas_objetos = [] # Lista para guardar OBJETOS Rota
+        rotas_objetos = [] 
 
         with self.db.conectar() as conn:
             cursor = conn.cursor()
-            # Buscamos os dados crus
             cursor.execute("SELECT id, origem, destino, horario_partida, dias_semana, vagas_disponiveis FROM rotas WHERE motorista_id = ?", (self.motorista_id,))
             tuplas = cursor.fetchall()
 
-            # Conversão de Tupla -> Objeto
             for t in tuplas:
-                # t[0]=id, t[1]=origem, etc.
                 nova_rota = Rota(t[0], t[1], t[2], t[3], t[4], t[5])
                 rotas_objetos.append(nova_rota)
 
@@ -162,17 +159,16 @@ class ControladorMotorista:
             if mostrar_ids: return []
         else:
             for i, rota in enumerate(rotas_objetos):
-                # AGORA USAMOS ATRIBUTOS (.origem, .destino)
                 label = f" (ID: {rota.id})" if mostrar_ids else ""
                 print(f"\n--- Rota {i+1}{label} ---")
                 print(f"  {rota.origem} -> {rota.destino}")
                 print(f"  {rota.horario_partida} ({rota.dias_semana}) | Vagas: {rota.vagas_disponiveis}")
 
         if not mostrar_ids:
-            print("\n")
-            
+            print("\n" + "="*60)
+            Interface.input_personalizado("Pressione Enter para voltar...")
         
-        return rotas_objetos # Retorna lista de objetos
+        return rotas_objetos
 
     def deletar_rota(self):
         """

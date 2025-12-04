@@ -8,7 +8,9 @@ from util import Interface
 class ServicoAutenticacao2FA:
     def __init__(self):
         self.email_remetente = os.getenv("EMAIL_REMETENTE", "arthur.iarley@ufrpe.br")
-        self.email_senha = os.getenv("EMAIL_SENHA", "xcit nwrc tplg ufum") # xcit nwrc tplg ufum
+        self.email_senha = os.getenv("EMAIL_SENHA", "xcit nwrc tplg ufuM") # xcit nwrc tplg ufum 
+        # Tiramos uma letra do codigo pra testes, ja que evita ficar checando email sempre.
+        # Alem disso, deixa a possibilidade de usar emails que não existem
 
     def gerar_codigo(self):
         return str(random.randint(100000, 999999))
