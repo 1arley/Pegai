@@ -1,9 +1,11 @@
 import re
-from util import Interface
+from util import Interface, Cores
 from database import BancoDeDados
 from models import Rota  
 from mapas import ServicoMapas
 from a2f import ServicoAutenticacao2FA
+from chat import ControladorChat
+from models import Usuario
 
 class ControladorMotorista:
     def __init__(self, motorista_id):
@@ -289,7 +291,7 @@ class ControladorMotorista:
             print(f"       Rota: {p[2]} -> {p[3]}")
             print(f"       Data: {p[4]}\n")
 
-        escolha = Interface.input_personalizado("Digite o ID para aceitar (ou 'voltar'): ").strip()
+        escolha = Interface.input_personalizado("Digite o ID para responder (ou 'voltar'): ").strip()
         if Interface.checar_voltar(escolha): return
 
         # Verifica se o ID digitado está na lista exibida (segurança)
@@ -298,6 +300,24 @@ class ControladorMotorista:
             Interface.print_erro("ID inválido ou não pertence a você.")
             Interface.aguardar(2)
             return
+
+        # 2. Escolhe a Ação (Aceitar ou Recusar)
+        print("-" * 30)
+        print(f"Gerenciando solicitação #{escolha}")
+        print(f"[A] {Cores.VERDE}ACEITAR{Cores.FIM} a corrida")
+        print(f"[R] {Cores.VERMELHO}RECUSAR{Cores.FIM} a corrida")
+        
+        acao = Interface.input_personalizado("Opção (A/R): ").strip().upper()
+        
+        if Interface.checar_voltar(acao): return
+
+        if acao == 'A':
+            self._atualizar_status(escolha, 'ACEITA')
+        elif acao == 'R':
+            self._atualizar_status(escolha, 'RECUSADA')
+        else:
+            Interface.print_erro("Opção inválida.")
+            Interface.aguardar(1)
 
         # Tenta mudar o status usando a regra de validação
         self._atualizar_status(escolha, 'ACEITA')
@@ -327,8 +347,23 @@ class ControladorMotorista:
         for a in ativas:
             print(f"[ID: {a[0]}] {a[2]} -> {a[3]} (Passageiro: {a[1]})")
 
-        escolha = Interface.input_personalizado("Digite o ID para concluir (ou 'voltar'): ").strip()
+        print("-" * 60)
+        print("[ID] para Concluir Viagem")
+        print("['C' + ID] para Chat (Ex: C10)")
+        print("['voltar'] para Sair")
+        
+        escolha = Interface.input_personalizado("Opção: ").strip().upper()
         if Interface.checar_voltar(escolha): return
+
+        if escolha.startswith("C"):
+            id_viagem = escolha[1:]
+            # Cria um objeto usuário temporário ou passa apenas o ID se refatorar o Chat
+            # Assumindo que você tem acesso ao objeto usuario completo ou recria ele:
+            usr_temp = Usuario(self.motorista_id, "Motorista", "", True) 
+            chat = ControladorChat(usr_temp)
+            chat.abrir_sala_chat(id_viagem, f"Viagem #{id_viagem}")
+            self.gerenciar_viagens_ativas() 
+            return
             
         self._atualizar_status(escolha, 'CONCLUÍDA')
 
@@ -341,7 +376,7 @@ class ControladorMotorista:
             print("[3] Deletar Rota")
             print("-" * 30)
             print("[4] Solicitações Pendentes (Aceitar)")
-            print("[5] Concluir Viagens")
+            print("[5] Gerenciar Viagens em Andamento")
             print("-" * 30)
             print("[0] Deslogar")
             print("\n(Digite 'voltar' para trocar de perfil)")

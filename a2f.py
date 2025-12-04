@@ -8,7 +8,7 @@ from util import Interface
 class ServicoAutenticacao2FA:
     def __init__(self):
         self.email_remetente = os.getenv("EMAIL_REMETENTE", "arthur.iarley@ufrpe.br")
-        self.email_senha = os.getenv("EMAIL_SENHA", "xcit nwrc tplg ufuM") # xcit nwrc tplg ufum 
+        self.email_senha = os.getenv("EMAIL_SENHA", "xcit nwrc tplg ufu") # xcit nwrc tplg ufum 
         # Tiramos uma letra do codigo pra testes, ja que evita ficar checando email sempre.
         # Alem disso, deixa a possibilidade de usar emails que não existem
 
@@ -38,7 +38,8 @@ class ServicoAutenticacao2FA:
     def verificar_codigo(self, codigo_gerado, expira_em):
         for _ in range(3):
             codigo_digitado = Interface.input_personalizado("Digite o código de 6 dígitos: ")
-            if codigo_digitado == codigo_gerado and time.time() < expira_em:
+            if Interface.checar_voltar(codigo_digitado): return
+            elif codigo_digitado == codigo_gerado and time.time() < expira_em:
                 Interface.print_sucesso("Verificação concluída!")
                 return True
             else:

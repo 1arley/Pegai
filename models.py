@@ -41,5 +41,16 @@ class Viagem:
         self.data_solicitacao = data_solicitacao
         self.status = status
 
+class Mensagem:
+    def __init__(self, remetente_nome, texto, data_envio, eh_meu=False):
+        self.remetente_nome = remetente_nome
+        self.texto = texto
+        self.data_envio = data_envio
+        self.eh_meu = eh_meu
+
+    def __str__(self):
+        prefixo = "VOCÊ" if self.eh_meu else self.remetente_nome.upper()
+        return f"[{self.data_envio[11:16]}] {prefixo}: {self.texto}"
+
     def __str__(self):
         return f"Viagem {self.id} | {self.status} | {self.rota.origem} -> {self.rota.destino}"

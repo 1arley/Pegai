@@ -1,6 +1,5 @@
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
-from util import Interface
 
 class ServicoMapas:
     def __init__(self):

@@ -79,6 +79,18 @@ class BancoDeDados:
                     FOREIGN KEY (alvo_id) REFERENCES usuarios (id)
                 )
             ''')
+
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS mensagens (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    viagem_id INTEGER NOT NULL,
+                    remetente_id INTEGER NOT NULL,
+                    texto TEXT NOT NULL,
+                    data_envio DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (viagem_id) REFERENCES viagens (id),
+                    FOREIGN KEY (remetente_id) REFERENCES usuarios (id)
+                )
+            ''')
             
             # Migrações
             try: cursor.execute("ALTER TABLE usuarios ADD COLUMN codigo_2fa TEXT;")

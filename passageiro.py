@@ -4,6 +4,7 @@ import auth
 from models import Rota
 from models import Rota, Viagem 
 from util import Cores
+from chat import ControladorChat
 import time
 
 class ControladorPassageiro:
@@ -200,11 +201,24 @@ class ControladorPassageiro:
 
         # Loop q serve para 'simular' tempo real
         print("\n[1] Atualizar Status")
+        print("[2] Abrir Chat da Viagem") # NOVA OPÇÃO
         print("[0] Voltar")
+        
         op = Interface.input_personalizado("Opção: ").strip()
         
         if op == '1':
-            self.acompanhar_viagem() 
+            self.acompanhar_viagem()
+        elif op == '2':
+            # Lógica para selecionar qual viagem (caso haja mais de uma, embora raro)
+            # Simplificação: pega a primeira ativa ou pede ID
+            vid = Interface.input_personalizado("ID da Viagem para Chat: ")
+            if Interface.checar_voltar(vid): return
+            
+            # Verifica se pertence ao usuário
+            # (Você pode copiar a lógica de verificação existente)
+            chat = ControladorChat(self.usuario)
+            chat.abrir_sala_chat(vid, f"Viagem #{vid}")
+            self.acompanhar_viagem() # Retorna ao menu ao sair do chat
         else:
             return
         

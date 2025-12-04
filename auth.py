@@ -101,7 +101,7 @@ class ControladorAutenticacao:
         nome = Interface.input_personalizado("Nome: ").strip()
         if Interface.checar_voltar(nome): return
 
-        email = Interface.input_personalizado("Email (@ufrpe.br): ").strip()
+        email = Interface.input_personalizado("Email (@ufrpe.br): ").strip().lower()
         if Interface.checar_voltar(email): return
         if not self.validar_email(email):
             Interface.print_erro("Email inválido.")
@@ -156,7 +156,7 @@ class ControladorAutenticacao:
 
     def login(self):
         Interface.exibir_cabecalho("Login")
-        email = Interface.input_personalizado("Email: ").strip()
+        email = Interface.input_personalizado("Email: ").strip().lower()
         if Interface.checar_voltar(email): return
         senha = Interface.input_personalizado("Senha: ")
         if Interface.checar_voltar(senha): return
